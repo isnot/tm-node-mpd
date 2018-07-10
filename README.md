@@ -1,3 +1,10 @@
+not-node-mpd
+============
+
+This is fork of [node-mpd](https://github.com/Prior99/node-mpd) project by Frederick Gnodtke.
+
+Here is original README.md content
+
 node-mpd
 ========
 
@@ -22,7 +29,7 @@ This is a minimal exmaple which connects to a mpd running on localhost on the de
 		mpd.disconnect();
 	});
 ```
-	
+
 Make sure to take a look at the [examples](https://github.com/Prior99/node-mpd/tree/master/examples).
 
 License

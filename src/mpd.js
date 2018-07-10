@@ -62,7 +62,7 @@ MPD.prototype.clear = function(callback) {
 };
 
 MPD.prototype.prev = function(callback) {
-	this._sendCommand("prev", function(r) {
+	this._sendCommand("previous", function(r) {
 		this._answerCallbackError(r, callback);
 	}.bind(this));
 };
