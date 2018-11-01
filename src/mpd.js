@@ -227,6 +227,9 @@ MPD.prototype.updateStatus = function(callback) {
 				case "state":
 					this.status.state = value;
 					break;
+				case "xfade":
+					this.status.xfade = parseInt(value);
+					break;
 				case "song":
 					this.status.song = parseInt(value);
 					break;
