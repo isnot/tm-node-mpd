@@ -8,8 +8,8 @@ if(!String.prototype.trim) {
 		// Make sure we trim BOM and NBSP
 		var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
 		String.prototype.trim = function() {
-		return this.replace(rtrim, '');
-	};
+			return this.replace(rtrim, '');
+		};
 	})();
 }
 
@@ -24,6 +24,8 @@ var MPD = function(obj) {
 	this.port = obj.port ? obj.port : 6600;
 	this.host = obj.host ? obj.host : "localhost";
 	this._requests = [];
+	this.connected = false;
+	this.disconnecting = false;
 	this.status = {};
 	this.server = {};
 	this.playlist = [];
@@ -93,7 +95,7 @@ MPD.prototype.volume = function(vol, callback) {
 };
 
 MPD.prototype.searchAdd = function(search, callback) {
-	var args = ["searchadd"];;
+	var args = ["searchadd"];
 	for(var key in search) {
 		args.push(key);
 		args.push(search[key]);
@@ -102,7 +104,7 @@ MPD.prototype.searchAdd = function(search, callback) {
 		this._answerCallbackError(r, callback);
 	}.bind(this));
 	this._sendCommand.apply(this, args);
-}
+};
 
 MPD.prototype._answerCallbackError = function(r, cb) {
 	var err = this._checkReturn(r);
@@ -121,16 +123,38 @@ MPD.prototype._answerCallbackError = function(r, cb) {
  */
 
 MPD.prototype.connect = function() {
-	this.client = new Socket();
-	this.client.setEncoding('utf8');
-	this.commanding = true;
-	this.client.connect(this.port, this.host, function() {
-		this.client.once('data', this._initialGreeting.bind(this))
-	}.bind(this));
+ 	this.client = new Socket();
+ 	this.client.setEncoding('utf8');
+ 	this.commanding = true;
+	this.disconnecting = false;
+	this.connected = false;
+	this.client.on('end', ()=> {
+		if(!this.disconnecting) {
+			console.log('MPD disconnected');
+			this.connected = false;
+			this.emit('disconnected');
+			setTimeout(() => {
+				this.disconnect();
+				this.connect();
+			}, 1000);
+		}
+	});
+
+ 	this.client.on('error', (e)=>{
+ 		console.log('MPD connection ERROR');
+ 		this.emit('error', e);
+ 	});
+ 	this.client.connect(this.port, this.host, () => {
+		this.connected = true;
+		console.log('MPD connected');
+ 		this.client.once('data', this._initialGreeting.bind(this));
+ 	});
 };
 
 MPD.prototype.disconnect = function() {
+	this.disconnecting = true;
 	this.client.destroy();
+	delete this.client;
 };
 
 /*
@@ -209,39 +233,39 @@ MPD.prototype.updateStatus = function(callback) {
 			var key = keyValue[0].trim();
 			var value = keyValue[1].trim();
 			switch(key) {
-				case "volume":
-					this.status.volume = parseFloat(value.replace("%", "")) / 100;
-					break;
-				case "repeat":
-					this.status.repeat = (value === "1");
-					break;
-				case "single":
-					this.status.single = (value === "1");
-					break;
-				case "consume":
-					this.status.consume = (value === "1");
-					break;
-				case "playlistlength":
-					this.status.playlistlength = parseInt(value);
-					break;
-				case "state":
-					this.status.state = value;
-					break;
-				case "xfade":
-					this.status.xfade = parseInt(value);
-					break;
-				case "song":
-					this.status.song = parseInt(value);
-					break;
-				case "time":
-					this.status.time = {
-						elapsed : parseInt(keyValue[1]),
-						length : parseInt(keyValue[2])
-					};
-					break;
-				case "bitrate":
-					this.status.bitrate = parseInt(value);
-					break;
+			case "volume":
+				this.status.volume = parseFloat(value.replace("%", "")) / 100;
+				break;
+			case "repeat":
+				this.status.repeat = (value === "1");
+				break;
+			case "single":
+				this.status.single = (value === "1");
+				break;
+			case "consume":
+				this.status.consume = (value === "1");
+				break;
+			case "playlistlength":
+				this.status.playlistlength = parseInt(value);
+				break;
+			case "state":
+				this.status.state = value;
+				break;
+			case "xfade":
+				this.status.xfade = parseInt(value);
+				break;
+			case "song":
+				this.status.song = parseInt(value);
+				break;
+			case "time":
+				this.status.time = {
+					elapsed : parseInt(keyValue[1]),
+					length : parseInt(keyValue[2])
+				};
+				break;
+			case "bitrate":
+				this.status.bitrate = parseInt(value);
+				break;
 			}
 		}
 		if(callback) {
@@ -265,18 +289,18 @@ MPD.prototype._onMessage = function(message) {
 		this.emit("update", updated);
 	}.bind(this);
 	switch(updated) {
-		case "mixer":
-		case "player":
-		case "options":
-			this.updateStatus(afterUpdate);
-			break;
-		case "playlist":
-			this._updatePlaylist(afterUpdate);
-			break;
-		case "database":
-			this._updateSongs(afterUpdate);
-			break;
-	};
+	case "mixer":
+	case "player":
+	case "options":
+		this.updateStatus(afterUpdate);
+		break;
+	case "playlist":
+		this._updatePlaylist(afterUpdate);
+		break;
+	case "database":
+		this._updateSongs(afterUpdate);
+		break;
+	}
 };
 
 /*
@@ -456,6 +480,10 @@ MPD.prototype._handleResponse = function(message) {
 
 MPD.prototype._write = function(text) {
 	//console.log("SEND: " + text);
-	this.client.write(text + "\n");
+	if(this.connected){
+		this.client.write(text + "\n");
+	}else{
+		this.emit('disconnected', new Error('Disconnect while writing to MPD: '+text));
+	}
 };
 module.exports = MPD;
