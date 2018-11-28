@@ -239,6 +239,7 @@ MPD.prototype.updateStatus = function(callback) {
 				var keyValue = array[i].split(":");
 				if(keyValue.length < 2) {
 					if(array[i] !== "OK") {
+						this.restoreConnection();
 						throw new Error("Unknown response while fetching status.");
 					}
 					else {
@@ -300,6 +301,7 @@ MPD.prototype._onMessage = function(message) {
 	try{
 		var match;
 		if(!(match = message.match(/changed:\s*(.*?)\s+OK/))) {
+			this.restoreConnection();
 			throw new Error("Received unknown message during idle: " + message);
 		}
 		this._enterIdle();
@@ -337,6 +339,7 @@ MPD.prototype._initialGreeting = function(message) {
 		this.server.version = m[2];
 	}
 	else {
+		this.restoreConnection();
 		throw new Error("Unknown values while receiving initial greeting");
 	}
 	this._enterIdle();
@@ -505,6 +508,7 @@ MPD.prototype._write = function(text) {
 		if(this.connected){
 			this.client.write(text + "\n");
 		}else{
+			this.restoreConnection();
 			throw new Error('Disconnect while writing to MPD: ' + text);
 		}
 	}catch(e){
