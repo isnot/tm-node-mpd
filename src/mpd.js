@@ -31,6 +31,7 @@ var MPD = function(obj) {
 	this.playlist = [];
 	this.songs = [];
 	this.buffer = "";
+	this.on('disconnected', this.restoreConnection.bind(this));
 };
 
 Util.inherits(MPD, EventEmitter);
@@ -123,36 +124,48 @@ MPD.prototype._answerCallbackError = function(r, cb) {
  */
 
 MPD.prototype.connect = function() {
- 	this.client = new Socket();
- 	this.client.setEncoding('utf8');
- 	this.commanding = true;
-	this.disconnecting = false;
-	this.connected = false;
-	this.client.on('end', ()=> {
-		if(!this.disconnecting) {
-			console.log('MPD disconnected');
-			this.connected = false;
-			this.emit('disconnected');
-			setTimeout(() => {
-				this.disconnect();
-				this.connect();
-			}, 1000);
-		}
-	});
+	try{
+		this.client = new Socket();
+   	this.client.setEncoding('utf8');
+   	this.commanding = true;
+  	this.disconnecting = false;
+  	this.connected = false;
+  	this.client.once('end', ()=> {
+  		if(!this.disconnecting) {
+  			this.connected = false;
+  			this.emit('disconnected');
+  		}
+  	});
+   	this.client.on('error', (e)=>{
+   		this.emit('error', e);
+   	});
+   	this.client.connect(this.port, this.host, () => {
+  		this.connected = true;
+  		clearInterval(this.reconnectInterval);
+  		this.reconnectInterval = null;
+   		this.client.once('data', this._initialGreeting.bind(this));
+   	});
+	}catch(e){
+		this.restoreConnection();
+	}
+};
 
- 	this.client.on('error', (e)=>{
- 		console.log('MPD connection ERROR');
- 		this.emit('error', e);
- 	});
- 	this.client.connect(this.port, this.host, () => {
-		this.connected = true;
-		console.log('MPD connected');
- 		this.client.once('data', this._initialGreeting.bind(this));
- 	});
+MPD.prototype.restoreConnection = function(){
+	if(!this.reconnectInterval){
+		this.reconnectInterval = setInterval(() => {
+			if(!this.connected){
+  			this.disconnect();
+			}
+			this.connect();
+		}, 1000);
+	}
 };
 
 MPD.prototype.disconnect = function() {
 	this.disconnecting = true;
+	this.busy = false;
+	this._activeListener = null;
+	this._requests.splice(0, this._requests.length);
 	this.client.destroy();
 	delete this.client;
 };
@@ -483,7 +496,7 @@ MPD.prototype._write = function(text) {
 	if(this.connected){
 		this.client.write(text + "\n");
 	}else{
-		this.emit('disconnected', new Error('Disconnect while writing to MPD: '+text));
+		this.emit('error', new Error('Disconnect while writing to MPD: '+text));
 	}
 };
 module.exports = MPD;
