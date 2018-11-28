@@ -497,7 +497,8 @@ MPD.prototype._write = function(text) {
 	if(this.connected){
 		this.client.write(text + "\n");
 	}else{
-		this.emit('error', new Error('Disconnect while writing to MPD: '+text));
+		this.emit('error', new Error('Disconnect while writing to MPD: ' + text));
+		this.emit('disconnected');
 	}
 };
 module.exports = MPD;
