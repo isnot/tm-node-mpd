@@ -294,6 +294,7 @@ MPD.prototype.updateStatus = function(callback) {
 MPD.prototype._onMessage = function(message) {
 	var match;
 	if(!(match = message.match(/changed:\s*(.*?)\s+OK/))) {
+		this.restoreConnection();
 		throw new Error("Received unknown message during idle: " + message);
 	}
 	this._enterIdle();
