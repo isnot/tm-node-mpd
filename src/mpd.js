@@ -138,6 +138,7 @@ MPD.prototype.connect = function() {
   	});
    	this.client.on('error', (e)=>{
    		this.emit('error', e);
+			this.emit('disconnected');
    	});
    	this.client.connect(this.port, this.host, () => {
   		this.connected = true;
@@ -231,60 +232,64 @@ MPD.prototype._updateSongs = function(callback) {
 };
 
 MPD.prototype.updateStatus = function(callback) {
-	this._sendCommand("status", function(message) {
-		var array = message.split("\n");
-		for(var i in array) {
-			var keyValue = array[i].split(":");
-			if(keyValue.length < 2) {
-				if(array[i] !== "OK") {
-					throw new Error("Unknown response while fetching status.");
+	try{
+		this._sendCommand("status", function(message) {
+			var array = message.split("\n");
+			for(var i in array) {
+				var keyValue = array[i].split(":");
+				if(keyValue.length < 2) {
+					if(array[i] !== "OK") {
+						throw new Error("Unknown response while fetching status.");
+					}
+					else {
+						continue;
+					}
 				}
-				else {
-					continue;
+				var key = keyValue[0].trim();
+				var value = keyValue[1].trim();
+				switch(key) {
+				case "volume":
+					this.status.volume = parseFloat(value.replace("%", "")) / 100;
+					break;
+				case "repeat":
+					this.status.repeat = (value === "1");
+					break;
+				case "single":
+					this.status.single = (value === "1");
+					break;
+				case "consume":
+					this.status.consume = (value === "1");
+					break;
+				case "playlistlength":
+					this.status.playlistlength = parseInt(value);
+					break;
+				case "state":
+					this.status.state = value;
+					break;
+				case "xfade":
+					this.status.xfade = parseInt(value);
+					break;
+				case "song":
+					this.status.song = parseInt(value);
+					break;
+				case "time":
+					this.status.time = {
+						elapsed : parseInt(keyValue[1]),
+						length : parseInt(keyValue[2])
+					};
+					break;
+				case "bitrate":
+					this.status.bitrate = parseInt(value);
+					break;
 				}
 			}
-			var key = keyValue[0].trim();
-			var value = keyValue[1].trim();
-			switch(key) {
-			case "volume":
-				this.status.volume = parseFloat(value.replace("%", "")) / 100;
-				break;
-			case "repeat":
-				this.status.repeat = (value === "1");
-				break;
-			case "single":
-				this.status.single = (value === "1");
-				break;
-			case "consume":
-				this.status.consume = (value === "1");
-				break;
-			case "playlistlength":
-				this.status.playlistlength = parseInt(value);
-				break;
-			case "state":
-				this.status.state = value;
-				break;
-			case "xfade":
-				this.status.xfade = parseInt(value);
-				break;
-			case "song":
-				this.status.song = parseInt(value);
-				break;
-			case "time":
-				this.status.time = {
-					elapsed : parseInt(keyValue[1]),
-					length : parseInt(keyValue[2])
-				};
-				break;
-			case "bitrate":
-				this.status.bitrate = parseInt(value);
-				break;
+			if(callback) {
+				callback(this.status, this.server);
 			}
-		}
-		if(callback) {
-			callback(this.status, this.server);
-		}
-	}.bind(this));
+		}.bind(this));
+	}catch(e){
+		this.emit('error', e);
+	}
 };
 
 /*
@@ -292,28 +297,31 @@ MPD.prototype.updateStatus = function(callback) {
  */
 
 MPD.prototype._onMessage = function(message) {
-	var match;
-	if(!(match = message.match(/changed:\s*(.*?)\s+OK/))) {
-		this.restoreConnection();
-		throw new Error("Received unknown message during idle: " + message);
-	}
-	this._enterIdle();
-	var updated = match[1];
-	var afterUpdate = function() {
-		this.emit("update", updated);
-	}.bind(this);
-	switch(updated) {
-	case "mixer":
-	case "player":
-	case "options":
-		this.updateStatus(afterUpdate);
-		break;
-	case "playlist":
-		this._updatePlaylist(afterUpdate);
-		break;
-	case "database":
-		this._updateSongs(afterUpdate);
-		break;
+	try{
+		var match;
+		if(!(match = message.match(/changed:\s*(.*?)\s+OK/))) {
+			throw new Error("Received unknown message during idle: " + message);
+		}
+		this._enterIdle();
+		var updated = match[1];
+		var afterUpdate = function() {
+			this.emit("update", updated);
+		}.bind(this);
+		switch(updated) {
+			case "mixer":
+			case "player":
+			case "options":
+				this.updateStatus(afterUpdate);
+				break;
+			case "playlist":
+				this._updatePlaylist(afterUpdate);
+				break;
+			case "database":
+				this._updateSongs(afterUpdate);
+				break;
+		}
+	}catch(e){
+		this.emit('error', e);
 	}
 };
 
@@ -493,12 +501,14 @@ MPD.prototype._handleResponse = function(message) {
 };
 
 MPD.prototype._write = function(text) {
-	//console.log("SEND: " + text);
-	if(this.connected){
-		this.client.write(text + "\n");
-	}else{
-		this.emit('error', new Error('Disconnect while writing to MPD: ' + text));
-		this.emit('disconnected');
+	try{
+		if(this.connected){
+			this.client.write(text + "\n");
+		}else{
+			throw new Error('Disconnect while writing to MPD: ' + text);
+		}
+	}catch(e){
+		this.emit('error',e);
 	}
 };
 module.exports = MPD;
