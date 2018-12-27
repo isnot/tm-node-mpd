@@ -1,39 +1,40 @@
-var Song = function(info, mpd) {
-	this.mpd = mpd;
-	for(var key in info) {
-		this[key] = info[key];
-	}
-};
-
-Song.prototype.flatCopy = function() {
-	var obj = {};
-	for(var key in this) {
-		if(key !== "mpd"  && this.__proto__[key] === undefined) {
-			obj[key] = this[key];
+class Song{
+	constructor(info) {
+		if (Array.isArray(info)){
+			return this.createFromInfoArray(info);
+		}else{
+			for(let key in info) {
+				this[key] = info[key];
+			}
+			return this;
 		}
 	}
-	return obj;
-};
 
-Song.prototype.add = function(callback) {
-	this.mpd.add(this.file, callback);
-};
-
-Song.createFromInfoArray = function(lines, mpd) {
-	var info = {};
-	for(var i = 0; i < lines.length; i++) {
-		var keyValue = lines[i].split(":");
-		if(keyValue.length < 2) {
-			if(array[i] !== "OK") {
-				throw new Error("Unknown response while parsing song.");
-			}
-			else {
-				continue;
+	flatCopy() {
+		let obj = {};
+		for(let key in this) {
+			if(key !== "mpd"  && this.__proto__[key] === undefined) {
+				obj[key] = this[key];
 			}
 		}
-		var key = keyValue[0].trim();
-		var value = keyValue[1].trim();
-		switch(key) {
+		return obj;
+	}
+
+	createFromInfoArray(lines) {
+		let info = {};
+		for(let i = 0; i < lines.length; i++) {
+			let keyValue = lines[i].split(":");
+			if(keyValue.length < 2) {
+				if(lines[i] !== "OK") {
+					throw new Error("Unknown response while parsing song.");
+				}
+				else {
+					continue;
+				}
+			}
+			let key = keyValue[0].trim();
+			let value = keyValue[1].trim();
+			switch(key) {
 			case "file":
 				info.file = value;
 				break;
@@ -58,9 +59,9 @@ Song.createFromInfoArray = function(lines, mpd) {
 			case "Genre":
 				info.genre = value;
 				break;
+			}
 		}
+		return new Song(info);
 	}
-	return new Song(info, mpd);
-};
-
+}
 module.exports = Song;

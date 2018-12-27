@@ -1,12 +1,14 @@
-var Socket = require('net').Socket;
-var EventEmitter = require("events").EventEmitter;
-var Util = require("util");
-var Song = require("./song");
+const Socket = require('net').Socket;
+const EventEmitter = require("events").EventEmitter;
+const Util = require("util");
+const Song = require("./song");
+const NOOP = ()=> { };
+const CONST_FILE_LINE_START = "file:";
 
 if(!String.prototype.trim) {
 	(function() {
 		// Make sure we trim BOM and NBSP
-		var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+		let rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
 		String.prototype.trim = function() {
 			return this.replace(rtrim, '');
 		};
@@ -20,7 +22,7 @@ if(!String.prototype.startsWith) {
 	};
 }
 
-var MPD = function(obj) {
+let MPD = function(obj) {
 	this.port = obj.port ? obj.port : 6600;
 	this.host = obj.host ? obj.host : "localhost";
 	this._requests = [];
@@ -41,74 +43,74 @@ Util.inherits(MPD, EventEmitter);
  */
 
 MPD.prototype.play = function(callback) {
-	this._sendCommand("play", function(r) {
+	this._sendCommand("play", (r) =>{
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.pause = function(callback) {
-	this._sendCommand("pause", function(r) {
+	this._sendCommand("pause", (r) =>{
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.next = function(callback) {
-	this._sendCommand("next", function(r) {
+	this._sendCommand("next", (r) =>{
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.clear = function(callback) {
-	this._sendCommand("clear", function(r) {
+	this._sendCommand("clear", (r) => {
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.prev = function(callback) {
-	this._sendCommand("previous", function(r) {
+	this._sendCommand("previous", (r) => {
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.toggle = function(callback) {
-	this._sendCommand("toggle", function(r) {
+	this._sendCommand("toggle", (r) => {
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.updateSongs = function(callback) {
-	this._sendCommand("update", function(r) {
-		var arr = r.split(/\n/);
+	this._sendCommand("update", (r) => {
+		let arr = r.split(/\n/);
 		this._answerCallbackError(arr[1], callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.add = function(name, callback) {
-	this._sendCommand("add", name, function(r) {
+	this._sendCommand("add", name, (r) =>{
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.volume = function(vol, callback) {
-	this._sendCommand("setvol", vol, function(r) {
+	this._sendCommand("setvol", vol, (r) =>{
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 };
 
 MPD.prototype.searchAdd = function(search, callback) {
-	var args = ["searchadd"];
-	for(var key in search) {
+	let args = ["searchadd"];
+	for(let key in search) {
 		args.push(key);
 		args.push(search[key]);
 	}
-	args.push(function(r) {
+	args.push(r => {
 		this._answerCallbackError(r, callback);
-	}.bind(this));
+	});
 	this._sendCommand.apply(this, args);
 };
 
 MPD.prototype._answerCallbackError = function(r, cb) {
-	var err = this._checkReturn(r);
+	let err = this._checkReturn(r);
 	if(cb) {
 		cb(err);
 	}
@@ -176,15 +178,15 @@ MPD.prototype.disconnect = function() {
  */
 
 MPD.prototype._updatePlaylist = function(callback) {
-	this._sendCommand("playlistinfo", function(message) {
-		var lines = message.split("\n");
+	this._sendCommand("playlistinfo", (message) => {
+		let lines = message.split("\n");
 		this.playlist = [];
-		var songLines = [];
-		var pos;
-		for(var i = 0; i < lines.length - 1; i++) {
-			var line = lines[i];
+		let songLines = [];
+		let pos;
+		for(let i = 0; i < lines.length - 1; i++) {
+			let line = lines[i];
 			if(i !== 0 && line.startsWith("file:")) {
-				this.playlist[pos] = Song.createFromInfoArray(songLines, this);
+				this.playlist[pos] = new Song(songLines);
 				songLines = [];
 				pos = -1;
 			}
@@ -196,47 +198,46 @@ MPD.prototype._updatePlaylist = function(callback) {
 			}
 		}
 		if(songLines.length !== 0 && pos !== -1) {
-			this.playlist[pos] = Song.createFromInfoArray(songLines, this);
+			this.playlist[pos] = new Song(songLines);
 		}
-		var err = this._checkReturn(lines[lines.length - 1]);
+		let err = this._checkReturn(lines[lines.length - 1]);
 		if(err) { throw err; }
 		if(callback) {
 			callback(this.playlist);
 		}
-	}.bind(this));
+	});
 };
 
 MPD.prototype._updateSongs = function(callback) {
-	this._sendCommand("listallinfo", function(message) {
-		var lines = message.split("\n");
-
+	this._sendCommand("listallinfo", (message) => {
+		let lines = message.split("\n");
 		this.songs = [];
-		var songLines = [];
-		for(var i = 0; i < lines.length - 1; i++) {
-			var line = lines[i];
-			if(i !== 0 && line.startsWith("file:")) {
-				this.songs.push(Song.createFromInfoArray(songLines, this));
+		let songLines = [];
+		for(let i = 0; i < lines.length - 1; i++) {
+			let line = lines[i];
+			if(i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
+				this.songs.push(new Song(songLines));
 				songLines = [];
 			}
 			songLines.push(line);
 		}
 		if(songLines.length !== 0) {
-			this.songs.push(Song.createFromInfoArray(songLines, this));
+			this.songs.push(new Song(songLines));
 		}
-		var err = this._checkReturn(lines[lines.length - 1]);
+		let err = this._checkReturn(lines[lines.length - 1]);
 		if(err) { throw err; }
 		if(callback) {
 			callback(this.songs);
 		}
-	}.bind(this));
+	});
 };
 
 MPD.prototype.updateStatus = function(callback) {
 	try{
-		this._sendCommand("status", function(message) {
-			var array = message.split("\n");
-			for(var i in array) {
-				var keyValue = array[i].split(":");
+		this._sendCommand("status", (message) =>{
+			let array = message.split("\n");
+			for(let i in array) {
+				let keyValue = array[i].split(":");
 				if(keyValue.length < 2) {
 					if(array[i] !== "OK") {
 						this.restoreConnection();
@@ -246,8 +247,8 @@ MPD.prototype.updateStatus = function(callback) {
 						continue;
 					}
 				}
-				var key = keyValue[0].trim();
-				var value = keyValue[1].trim();
+				let key = keyValue[0].trim();
+				let value = keyValue[1].trim();
 				switch(key) {
 				case "volume":
 					this.status.volume = parseFloat(value.replace("%", "")) / 100;
@@ -287,7 +288,7 @@ MPD.prototype.updateStatus = function(callback) {
 			if(callback) {
 				callback(this.status, this.server);
 			}
-		}.bind(this));
+		});
 	}catch(e){
 		this.emit('error', e);
 	}
@@ -299,28 +300,26 @@ MPD.prototype.updateStatus = function(callback) {
 
 MPD.prototype._onMessage = function(message) {
 	try{
-		var match;
+		let match;
 		if(!(match = message.match(/changed:\s*(.*?)\s+OK/))) {
 			this.restoreConnection();
 			throw new Error("Received unknown message during idle: " + message);
 		}
 		this._enterIdle();
-		var updated = match[1];
-		var afterUpdate = function() {
-			this.emit("update", updated);
-		}.bind(this);
+		let updated = match[1];
+		let afterUpdate = () =>{this.emit("update", updated);};
 		switch(updated) {
-			case "mixer":
-			case "player":
-			case "options":
-				this.updateStatus(afterUpdate);
-				break;
-			case "playlist":
-				this._updatePlaylist(afterUpdate);
-				break;
-			case "database":
-				this._updateSongs(afterUpdate);
-				break;
+		case "mixer":
+		case "player":
+		case "options":
+			this.updateStatus(afterUpdate);
+			break;
+		case "playlist":
+			this._updatePlaylist(afterUpdate);
+			break;
+		case "database":
+			this._updateSongs(afterUpdate);
+			break;
 		}
 	}catch(e){
 		this.emit('error', e);
@@ -333,7 +332,7 @@ MPD.prototype._onMessage = function(message) {
 
 MPD.prototype._initialGreeting = function(message) {
 	//console.log("Got initial greeting: " + message);
-	var m;
+	let m;
 	if(m = message.match(/OK\s(.*?)\s((:?[0-9]|\.))/)) {
 		this.server.name = m[1];
 		this.server.version = m[2];
@@ -345,16 +344,11 @@ MPD.prototype._initialGreeting = function(message) {
 	this._enterIdle();
 	this.client.on('data', this._onData.bind(this));
 	//this._enterIdle();
-	var refreshPlaylist = function() {
-		this._updatePlaylist(this._setReady.bind(this));
-	}.bind(this);
-	var refreshDatabase = function() {
-		this._updateSongs(refreshPlaylist);
-	}.bind(this);
-	var refreshStatus = function() {
-		this.updateStatus(refreshDatabase);
-	}.bind(this);
-	refreshStatus();
+	this.updateStatus(() => {
+		this._updateSongs(() => {
+			this._updatePlaylist(this._setReady.bind(this));
+		});
+	});
 };
 
 MPD.prototype._setReady = function() {
@@ -362,9 +356,9 @@ MPD.prototype._setReady = function() {
 };
 
 function findReturn(message) {
-	var arr;
-	var rOk = /OK(?:\n|$)/g;
-	var rAck = /ACK\s*\[\d*\@\d*]\s*\{.*?\}\s*.*?(?:$|\n)/g;
+	let arr;
+	let rOk = /OK(?:\n|$)/g;
+	let rAck = /ACK\s*\[\d*\@\d*]\s*\{.*?\}\s*.*?(?:$|\n)/g;
 	if(arr = rOk.exec(message)) {
 		return arr.index + arr[0].length;
 	}
@@ -382,9 +376,9 @@ MPD.prototype._onData = function(message) {
 	//console.log("RECV: " + message);
 	if(this.idling || this.commanding) {
 		this.buffer += message;
-		var index;
+		let index;
 		if((index = findReturn(this.buffer)) !== -1) { // We found a return mark
-			var string = this.buffer.substring(0, index).trim();
+			let string = this.buffer.substring(0, index).trim();
 			this.buffer = this.buffer.substring(index, this.buffer.length);
 			//console.log("PARSED: " + string);
 			//console.log("Message returned: " + string);
@@ -401,8 +395,8 @@ MPD.prototype._onData = function(message) {
 };
 
 MPD.prototype._checkReturn = function(msg) {
-	if(msg !== "OK") {
-		return new Error("Non okay return status: \"" + msg + "\"");
+	if(msg !== 'OK') {
+		return new Error(`Non okay return status: "${msg}"`);
 	}
 };
 
@@ -418,11 +412,11 @@ MPD.prototype._enterIdle = function(callback) {
 
 MPD.prototype._leaveIdle = function(callback) {
 	this.idling = false;
-	this.client.once("data", function(message) {
+	this.client.once("data", (message) =>{
 		//this._checkReturn(message.trim());
 		this.commanding = true;
 		callback();
-	}.bind(this));
+	});
 	this._write("noidle");
 };
 
@@ -439,7 +433,7 @@ MPD.prototype._checkIdle = function() {
  */
 
 MPD.prototype._checkOutgoing = function() {
-	var request;
+	let request;
 	if(this._activeListener || this.busy) {
 		//console.log("No deque as active listener.");
 		return;
@@ -447,12 +441,12 @@ MPD.prototype._checkOutgoing = function() {
 	if(request = this._requests.shift()) {
 		//console.log("Pending deque, leaving idle.");
 		this.busy = true;
-		var deque = function() {
+		let deque = () => {
 			//console.log("Dequed.");
 			this._activeListener = request.callback;
 			this.busy = false;
 			this._write(request.message);
-		}.bind(this);
+		};
 		if(this.idling) {
 			this._leaveIdle(deque);
 		}
@@ -463,7 +457,7 @@ MPD.prototype._checkOutgoing = function() {
 };
 
 MPD.prototype._sendCommand = function() {
-	var cmd = "", args = "", callback;
+	let cmd = "", args = "", callback;
 	if(arguments.length == 0) {
 		return;
 	}
@@ -473,11 +467,11 @@ MPD.prototype._sendCommand = function() {
 	if(arguments.length >= 2) {
 		callback = arguments[arguments.length - 1];
 	}
-	for(var i = 1; i < arguments.length -1; i++) {
+	for(let i = 1; i < arguments.length -1; i++) {
 		args += " \"" + arguments[i] + "\" ";
 	}
 	if(!callback) {
-		callback = function() { };
+		callback = NOOP;
 	}
 	this._send(cmd + args, callback);
 };
@@ -492,7 +486,7 @@ MPD.prototype._send = function(message, callback) {
 };
 
 MPD.prototype._handleResponse = function(message) {
-	var callback;
+	let callback;
 	//console.log("Handling response: \"" + message + "\" active listener is " + this._activeListener);
 	if(callback = this._activeListener) {
 		this._activeListener = null;

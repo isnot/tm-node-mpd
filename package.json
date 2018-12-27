@@ -3,6 +3,9 @@
  "version": "0.0.9",
  "description": "A mpd interface for node. Forked from node-mpd",
  "main": "index.js",
+ "scripts": {
+   "lint": "./node_modules/.bin/eslint ./src/**/**.js --fix"
+ },
  "repository": {
   "type": "git",
   "url": "https://github.com/interrupter/not-node-mpd"
@@ -11,13 +14,13 @@
   "mpd"
  ],
  "devDependencies": {
-  "eslint": "^5.0.1",
-  "mocha": "^5.0.5",
   "chai": "^4.1.2",
-  "should": "^13.2.1",
-  "supertest": "^3.0.0",
+  "eslint": "^5.11.1",
   "ink-docstrap": "^1.3.2",
-  "jsdoc": "^3.5.5"
+  "jsdoc": "^3.5.5",
+  "mocha": "^5.0.5",
+  "should": "^13.2.1",
+  "supertest": "^3.0.0"
  },
  "author": "Aleksandr Repin",
  "license": "MIT"
