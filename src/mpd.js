@@ -128,26 +128,26 @@ MPD.prototype._answerCallbackError = function(r, cb) {
 MPD.prototype.connect = function() {
 	try{
 		this.client = new Socket();
-   	this.client.setEncoding('utf8');
-   	this.commanding = true;
-  	this.disconnecting = false;
-  	this.connected = false;
-  	this.client.once('end', ()=> {
-  		if(!this.disconnecting) {
-  			this.connected = false;
-  			this.emit('disconnected');
-  		}
-  	});
-   	this.client.on('error', (e)=>{
-   		this.emit('error', e);
+		this.client.setEncoding('utf8');
+		this.commanding = true;
+		this.disconnecting = false;
+		this.connected = false;
+		this.client.once('end', ()=> {
+			if(!this.disconnecting) {
+				this.connected = false;
+				this.emit('disconnected');
+			}
+		});
+		this.client.on('error', (e)=>{
+			this.emit('error', e);
 			this.emit('disconnected');
-   	});
-   	this.client.connect(this.port, this.host, () => {
-  		this.connected = true;
-  		clearInterval(this.reconnectInterval);
-  		this.reconnectInterval = null;
-   		this.client.once('data', this._initialGreeting.bind(this));
-   	});
+		});
+		this.client.connect(this.port, this.host, () => {
+			this.connected = true;
+			clearInterval(this.reconnectInterval);
+			this.reconnectInterval = null;
+			this.client.once('data', this._initialGreeting.bind(this));
+		});
 	}catch(e){
 		this.restoreConnection();
 	}
@@ -157,7 +157,7 @@ MPD.prototype.restoreConnection = function(){
 	if(!this.reconnectInterval){
 		this.reconnectInterval = setInterval(() => {
 			if(!this.connected){
-  			this.disconnect();
+				this.disconnect();
 			}
 			this.connect();
 		}, 1000);
@@ -404,7 +404,7 @@ MPD.prototype._checkReturn = function(msg) {
  * Idling
  */
 
-MPD.prototype._enterIdle = function(callback) {
+MPD.prototype._enterIdle = function() {
 	this.idling = true;
 	this.commanding = false;
 	this._write("idle");
@@ -412,7 +412,7 @@ MPD.prototype._enterIdle = function(callback) {
 
 MPD.prototype._leaveIdle = function(callback) {
 	this.idling = false;
-	this.client.once("data", (message) =>{
+	this.client.once("data", () =>{
 		//this._checkReturn(message.trim());
 		this.commanding = true;
 		callback();
