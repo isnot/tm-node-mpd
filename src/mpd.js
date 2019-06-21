@@ -41,7 +41,7 @@ class MPD extends EventEmitter{
 	}
 
 	genericCommand(cmdLine){
-		return this._sendCommand(cmdLine).then(this._answerCallbackError);
+		return this._sendCommand(cmdLine).then(this._answerCallbackError.bind(this));
 	}
 
 	initGenericCommand() {
@@ -59,23 +59,23 @@ class MPD extends EventEmitter{
 	}
 
 	add(name) {
-		return this._sendCommand('add', name).then(this._answerCallbackError);
+		return this._sendCommand('add', name).then(this._answerCallbackError.bind(this));
 	}
 
 	playId(id){
-		return this._sendCommand('play', id).then(this._answerCallbackError);
+		return this._sendCommand('play', id).then(this._answerCallbackError.bind(this));
 	}
 
 	deleteId(id){
-		return this._sendCommand(`delete`, id).then(this._answerCallbackError);
+		return this._sendCommand(`delete`, id).then(this._answerCallbackError.bind(this));
 	}
 
 	volume(vol) {
-		return this._sendCommand('setvol', vol).then(this._answerCallbackError);
+		return this._sendCommand('setvol', vol).then(this._answerCallbackError.bind(this));
 	}
 
 	repeat(repeat = 1){
-		return this._sendCommand('repeat', repeat).then(this._answerCallbackError);
+		return this._sendCommand('repeat', repeat).then(this._answerCallbackError.bind(this));
 	}
 
 	searchAdd(search) {
@@ -84,7 +84,7 @@ class MPD extends EventEmitter{
 			args.push(key);
 			args.push(search[key]);
 		}
-		return this._sendCommand(...args).then(this._answerCallbackError);
+		return this._sendCommand(...args).then(this._answerCallbackError.bind(this));
 	}
 
 	_answerCallbackError(r) {
@@ -264,7 +264,7 @@ class MPD extends EventEmitter{
 	}
 
 	updateStatus() {
-		return this._sendCommand('status').then(this.parseStatusResponse);
+		return this._sendCommand('status').then(this.parseStatusResponse.bind(this));
 	}
 
 	/*
