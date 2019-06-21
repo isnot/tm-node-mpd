@@ -1,6 +1,6 @@
 {
  "name": "not-node-mpd",
- "version": "0.0.12",
+ "version": "0.1.0",
  "description": "A mpd interface for node. Forked from node-mpd",
  "main": "index.js",
  "scripts": {
