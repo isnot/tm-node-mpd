@@ -66,7 +66,7 @@ class MPD extends EventEmitter{
 		return this._sendCommand('play', id).then(this._answerCallbackError);
 	}
 
-	songDelete(id){
+	deleteId(id){
 		return this._sendCommand(`delete`, id).then(this._answerCallbackError);
 	}
 
