@@ -3,7 +3,7 @@ const EventEmitter = require("events").EventEmitter;
 const Song = require("./song");
 const RECONNECT_INTERVAL = 5000;
 const CONST_FILE_LINE_START = "file:";
-const GENERIC_COMMANDS = ['play', 'stop', 'pause', 'next', 'previous', 'toggle'];
+const GENERIC_COMMANDS = ['play', 'stop', 'pause', 'next', 'previous', 'toggle', 'clear'];
 
 if(!String.prototype.trim) {
 	(function() {
@@ -108,6 +108,7 @@ class MPD extends EventEmitter{
 			this.disconnecting = false;
 			this.connected = false;
 			this.client.once('end', ()=> {
+        //console.error('mpd end');
 				if(!this.disconnecting) {
 					this.connected = false;
 					this.emit('disconnected');
@@ -115,16 +116,19 @@ class MPD extends EventEmitter{
 			});
 			this.client.on('error', (e)=>{
 				this.connected = false;
+      //  console.error('mpd error',e);
 				this.emit('error', e);
 				this.emit('disconnected');
 			});
 			this.client.connect(this.port, this.host, () => {
+        //console.log('mpd connected');
 				this.connected = true;
 				clearInterval(this.reconnectInterval);
 				this.reconnectInterval = null;
 				this.client.once('data', this._initialGreeting.bind(this));
 			});
 		}catch(e){
+      //console.error('mpd exception',e);
 			this.restoreConnection();
 		}
 	}
@@ -154,59 +158,59 @@ class MPD extends EventEmitter{
 	 * Not-so-toplevel methods
 	 */
 
-	_updatePlaylist(callback) {
-		this._sendCommand('playlistinfo', (message) => {
-			let lines = message.split("\n");
-			this.playlist = [];
-			let songLines = [];
-			let pos;
-			for(let i = 0; i < lines.length - 1; i++) {
-				let line = lines[i];
-				if(i !== 0 && line.startsWith('file:')) {
-					this.playlist[pos] = new Song(songLines);
-					songLines = [];
-					pos = -1;
-				}
-				if(line.startsWith('Pos')) {
-					pos = parseInt(line.split(':')[1].trim());
-				}
-				else {
-					songLines.push(line);
-				}
-			}
-			if(songLines.length !== 0 && pos !== -1) {
-				this.playlist[pos] = new Song(songLines);
-			}
-			let err = this._checkReturn(lines[lines.length - 1]);
-			if(err) { throw err; }
-			if(callback) {
-				callback(this.playlist);
-			}
-		});
+	_updatePlaylist() {
+		this._sendCommand('playlistinfo')
+      .then((message) => {
+  			let lines = message.split("\n");
+  			this.playlist = [];
+  			let songLines = [];
+  			let pos;
+  			for(let i = 0; i < lines.length - 1; i++) {
+  				let line = lines[i];
+  				if(i !== 0 && line.startsWith('file:')) {
+  					this.playlist[pos] = new Song(songLines);
+  					songLines = [];
+  					pos = -1;
+  				}
+  				if(line.startsWith('Pos')) {
+  					pos = parseInt(line.split(':')[1].trim());
+  				}
+  				else {
+  					songLines.push(line);
+  				}
+  			}
+  			if(songLines.length !== 0 && pos !== -1) {
+  				this.playlist[pos] = new Song(songLines);
+  			}
+  			let err = this._checkReturn(lines[lines.length - 1]);
+  			if(err) {
+          throw err;
+        }
+  		  return this.playlist;
+  		});
 	}
 
-	_updateSongs(callback) {
-		this._sendCommand('listallinfo', (message) => {
-			let lines = message.split("\n");
-			this.songs = [];
-			let songLines = [];
-			for(let i = 0; i < lines.length - 1; i++) {
-				let line = lines[i];
-				if(i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
-					this.songs.push(new Song(songLines));
-					songLines = [];
-				}
-				songLines.push(line);
-			}
-			if(songLines.length !== 0) {
-				this.songs.push(new Song(songLines));
-			}
-			let err = this._checkReturn(lines[lines.length - 1]);
-			if(err) { throw err; }
-			if(callback) {
-				callback(this.songs);
-			}
-		});
+	_updateSongs() {
+		return this._sendCommand('listallinfo')
+      .then((message) => {
+  			let lines = message.split("\n");
+  			this.songs = [];
+  			let songLines = [];
+  			for(let i = 0; i < lines.length - 1; i++) {
+  				let line = lines[i];
+  				if(i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
+  					this.songs.push(new Song(songLines));
+  					songLines = [];
+  				}
+  				songLines.push(line);
+  			}
+  			if(songLines.length !== 0) {
+  				this.songs.push(new Song(songLines));
+  			}
+  			let err = this._checkReturn(lines[lines.length - 1]);
+  			if(err) { throw err; }
+  			return this.songs;
+  		});
 	}
 
 	parseStatusResponse(message){
@@ -320,11 +324,14 @@ class MPD extends EventEmitter{
 		this._enterIdle();
 		this.client.on('data', this._onData.bind(this));
 		//this._enterIdle();
-		this.updateStatus(() => {
-			this._updateSongs(() => {
-				this._updatePlaylist(this._setReady.bind(this));
-			});
-		});
+		this.updateStatus()
+      .then(this._updateSongs.bind(this))
+      .then(this._updatePlaylist.bind(this))
+      .then(this._setReady.bind(this))
+      .catch((e)=>{
+        //console.error('initial greeting exception',e);
+				this.emit('error', e);
+      });
 	}
 
 	_setReady() {
@@ -444,9 +451,11 @@ class MPD extends EventEmitter{
 		if(arguments.length >= 1) {
 			cmd = arguments[0];
 		}
-		for(let i = 1; i < arguments.length-1; i++) {
+		for(let i = 1; i < arguments.length; i++) {
 			args += ' "' + arguments[i] + '" ';
 		}
+		//
+    //console.log('send command',cmd + args);
 		return this._send(cmd + args);
 	}
 
@@ -494,7 +503,5 @@ class MPD extends EventEmitter{
 		return this.connected;
 	}
 }
-
-
 
 module.exports = MPD;
