@@ -159,7 +159,7 @@ class MPD extends EventEmitter{
 	 */
 
 	_updatePlaylist() {
-		this._sendCommand('playlistinfo')
+		return this._sendCommand('playlistinfo')
       .then((message) => {
   			let lines = message.split("\n");
   			this.playlist = [];
