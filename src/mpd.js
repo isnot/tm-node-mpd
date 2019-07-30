@@ -287,6 +287,7 @@ class MPD extends EventEmitter{
 			let updated = match[1];
 			let afterUpdate = () =>{
 				this.emit('update', updated);
+				this.emit('status', updated);
 			};
 			switch(updated) {
 			case 'mixer':
@@ -383,7 +384,7 @@ class MPD extends EventEmitter{
 
 	_checkReturn(msg) {
 		if(msg !== 'OK') {
-			return new Error(`Non okay return status: "${msg}"`);
+			return new Error(`Non okay return status: "${msg}" after command "${this._activeMessage}"`);
 		}
 	}
 
@@ -431,6 +432,7 @@ class MPD extends EventEmitter{
 			let deque = () => {
 				//console.log("Dequed.");
 				this._activeListener = request.callback;
+				this._activeMessage = request.message;
 				this.busy = false;
 				this._write(request.message);
 			};
