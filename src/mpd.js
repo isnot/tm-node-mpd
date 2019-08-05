@@ -78,6 +78,10 @@ class MPD extends EventEmitter{
 		return this._sendCommand('repeat', repeat).then(this._answerCallbackError.bind(this));
 	}
 
+	seek(songId, time){
+		return this._sendCommand(`seek`, songId, time).then(this._answerCallbackError.bind(this));
+	}
+
 	searchAdd(search) {
 		let args = ['searchadd'];
 		for(let key in search) {
