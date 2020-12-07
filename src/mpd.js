@@ -287,17 +287,17 @@ module.exports = class MPD extends EventEmitter {
         this.emit('status', updated);
       };
       switch(updated) {
-        case 'mixer':
-        case 'player':
-        case 'options':
-          this.updateStatus().then(afterUpdate);
-          break;
-        case 'playlist':
-          this._updatePlaylist().then(afterUpdate);
-          break;
-        case 'database':
-          this._updateSongs().then(afterUpdate);
-          break;
+      case 'mixer':
+      case 'player':
+      case 'options':
+        this.updateStatus().then(afterUpdate);
+        break;
+      case 'playlist':
+        this._updatePlaylist().then(afterUpdate);
+        break;
+      case 'database':
+        this._updateSongs().then(afterUpdate);
+        break;
       }
     } catch(e) {
       this.emit('error', e);
