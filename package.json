@@ -1,6 +1,6 @@
 {
   "name": "tm-node-mpd",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A mpd interface for node. Forked from node-mpd",
   "main": "index.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/RomanBurunkov/not-node-mpd"
+    "url": "https://github.com/RomanBurunkov/tm-node-mpd"
   },
   "keywords": [
     "mpd"
