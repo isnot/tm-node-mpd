@@ -308,15 +308,25 @@ module.exports = class MPD extends EventEmitter {
    * Message handling
    */
 
+  _setReady() {
+    this.emit('ready', this.status, this.server);
+  }
+
+  /**
+   * Initiate MPD connection with greeting message.
+   * According to the MPD protocol documentation when the client connects to the server,
+   * the server will answer with the following line: 'OK MPD version'
+   * where version is a protocol version identifier such as 0.12.2.
+   * @param {string} message 
+   */
   _initialGreeting(message) {
-    let m = message.match(/OK\s(.*?)\s((:?[0-9]|\.))/);
-    if (m) {
-      this.server.name = m[1];
-      this.server.version = m[2];
-    } else {
+    const m = message.match(/OK\s(.+)\s(.+)/);
+    if (!Array.isArray(m) || m.length !== 3) {
       this.restoreConnection();
       throw new Error("Unknown values while receiving initial greeting");
     }
+    this.server.name = m[1];
+    this.server.version = m[2];
     this._enterIdle();
     this.client.on('data', this._onData.bind(this));
     this.updateStatus()
@@ -324,10 +334,6 @@ module.exports = class MPD extends EventEmitter {
       .then(this._updatePlaylist.bind(this))
       .then(this._setReady.bind(this))
       .catch(e => this.emit('error', e));
-  }
-
-  _setReady() {
-    this.emit('ready', this.status, this.server);
   }
 
   findReturn(message) {
