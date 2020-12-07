@@ -58,7 +58,7 @@ module.exports = class MPD extends EventEmitter {
   }
 
   genericCommand(cmdLine) {
-    return this._sendCommand(cmdLine).then(this._answerCallbackError.bind(this));
+    return this._sendCommand(cmdLine).then(r => this._answerCallbackError(r));
   }
 
   initGenericCommand() {
@@ -76,27 +76,27 @@ module.exports = class MPD extends EventEmitter {
   }
 
   add(name) {
-    return this._sendCommand('add', name).then(this._answerCallbackError.bind(this));
+    return this._sendCommand('add', name).then(r => this._answerCallbackError(r));
   }
 
   playId(id) {
-    return this._sendCommand('play', id).then(this._answerCallbackError.bind(this));
+    return this._sendCommand('play', id).then(r => this._answerCallbackError(r));
   }
 
   deleteId(id) {
-    return this._sendCommand(`delete`, id).then(this._answerCallbackError.bind(this));
+    return this._sendCommand(`delete`, id).then(r => this._answerCallbackError(r));
   }
 
   volume(vol) {
-    return this._sendCommand('setvol', vol).then(this._answerCallbackError.bind(this));
+    return this._sendCommand('setvol', vol).then(r => this._answerCallbackError(r));
   }
 
   repeat(repeat = 1) {
-    return this._sendCommand('repeat', repeat).then(this._answerCallbackError.bind(this));
+    return this._sendCommand('repeat', repeat).then(r => this._answerCallbackError(r));
   }
 
   seek(songId, time) {
-    return this._sendCommand(`seek`, songId, time).then(this._answerCallbackError.bind(this));
+    return this._sendCommand(`seek`, songId, time).then(r => this._answerCallbackError(r));
   }
 
   searchAdd(search) {
@@ -105,7 +105,7 @@ module.exports = class MPD extends EventEmitter {
       args.push(key);
       args.push(search[key]);
     }
-    return this._sendCommand(...args).then(this._answerCallbackError.bind(this));
+    return this._sendCommand(...args).then(r => this._answerCallbackError(r));
   }
 
   /**
@@ -157,7 +157,6 @@ module.exports = class MPD extends EventEmitter {
     this.client.destroy();
     delete this.client;
   }
-
 
   /**
    * Not-so-toplevel methods
@@ -337,36 +336,27 @@ module.exports = class MPD extends EventEmitter {
   }
 
   findReturn(message) {
-    let rOk = /OK(?:\n|$)/g;
-    let rAck = /ACK\s*\[\d*\@\d*]\s*\{.*?\}\s*.*?(?:$|\n)/g;
+    const rOk = /OK(?:\n|$)/g;
     let arr = rOk.exec(message);
-    if(arr) {
-      return arr.index + arr[0].length;
-    }
-    else {
-      arr = rAck.exec(message);
-      if(arr) {
-        return arr.index + arr[0].length;
-      }else{
-        return -1;
-      }
-    }
+    if (arr) return arr.index + arr[0].length;
+    // If response is not OK.
+    const rAck = /ACK\s*\[\d*\@\d*]\s*\{.*?\}\s*.*?(?:$|\n)/g;
+    arr = rAck.exec(message);
+    return arr ? arr.index + arr[0].length : -1;
   }
 
-  _onData(message) {
-    message = !message ? '' : message = message.trim();
-    if (this.idling || this.commanding) {
-      this.buffer += message;
-      let index;
-      if ((index = this.findReturn(this.buffer)) !== -1) { // We found a return mark
-        let string = this.buffer.substring(0, index).trim();
-        this.buffer = this.buffer.substring(index, this.buffer.length);
-        if (this.idling) {
-          this._onMessage(string);
-        } else if(this.commanding) {
-          this._handleResponse(string);
-        }
-      }
+  _onData(data) {
+    if (!this.idling && !this.commanding) return;
+    this.buffer += !data ? '' : data.trim();
+    const index = this.findReturn(this.buffer);
+    if (index === -1) return;
+    // We found a return mark
+    const string = this.buffer.substring(0, index).trim();
+    this.buffer = this.buffer.substring(index, this.buffer.length);
+    if (this.idling) {
+      this._onMessage(string);
+    } else if(this.commanding) {
+      this._handleResponse(string);
     }
   }
 
@@ -427,7 +417,7 @@ module.exports = class MPD extends EventEmitter {
   }
 
   _send(message) {
-    return new Promise((resolve, reject)=>{
+    return new Promise((resolve, reject) => {
       try {
         this._requests.push({ message, callback: resolve, errorback: reject });
         this._checkOutgoing();
