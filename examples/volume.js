@@ -2,11 +2,11 @@ const MPD = require('../');
 
 const volume = process.argv.length > 2 ? parseInt(process.argv[2], 10) : 30;
 const settings = {
-  host: 'localhost',
-	port: process.env.MPD_PORT || 6600
+  host: process.env.MPD_HOST || 'localhost',
+  port: process.env.MPD_PORT || 6600
 };
 
-console.log(`Connecting to the MPD service on ${settings.host}:${settings.port}`);
+console.log(`Creating MPD instance for service on ${settings.host}:${settings.port}`);
 const mpd = new MPD(settings);
 
 mpd.on('ready', async () => {
@@ -23,4 +23,5 @@ mpd.on('ready', async () => {
   }
 });
 
+console.log(`Connecting to the MPD service...`);
 mpd.connect();
