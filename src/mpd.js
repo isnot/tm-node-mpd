@@ -115,9 +115,9 @@ module.exports = class MPD extends EventEmitter {
     try {
       this.client = new Socket();
       this.client.setEncoding('utf8');
+      this.connected = false;
       this.commanding = true;
       this.disconnecting = false;
-      this.connected = false;
       this.client.once('end', () => {
         if (this.disconnecting) return;
         this.connected = false;
@@ -154,8 +154,10 @@ module.exports = class MPD extends EventEmitter {
     this.busy = false;
     this._activeListener = null;
     this._requests.splice(0, this._requests.length);
-    this.client.destroy();
-    delete this.client;
+    if (this.client) {
+      this.client.destroy();
+      delete this.client;
+    }
   }
 
   /**
