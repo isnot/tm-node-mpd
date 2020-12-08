@@ -9,7 +9,7 @@ const FIELD_TRACK = 'Track';
 const FIELD_DATE = 'Date';
 const FIELD_GENRE = 'Genre';
 
-class Song {
+module.exports = class Song {
   constructor(info) {
     if (Array.isArray(info)) return this.createFromInfoArray(info);
     for (let key in info) {
@@ -19,29 +19,24 @@ class Song {
   }
 
   flatCopy() {
-    let obj = {};
+    const obj = {};
     for (let key in this) {
-      if(this.__proto__[key] === undefined) {
-        obj[key] = this[key];
-      }
+      if (this.__proto__[key] !== undefined) continue;
+      obj[key] = this[key];
     }
     return obj;
   }
 
   createFromInfoArray(lines) {
     let info = {};
-    for(let i = 0; i < lines.length; i++) {
+    for (let i = 0; i < lines.length; i++) {
       let keyValue = lines[i].split(':');
-      if(keyValue.length < 2) {
-        if(lines[i] !== RES_OK) {
-          throw new Error(ERR_MSG_UNKNOWN);
-        }
-        else {
-          continue;
-        }
+      if (keyValue.length < 2) {
+        if (lines[i] !== RES_OK) throw new Error(ERR_MSG_UNKNOWN);
+        continue;
       }
-      let key = keyValue[0].trim(),
-        value = keyValue[1].trim();
+      let key = keyValue[0].trim();
+      let value = keyValue[1].trim();
       switch(key) {
       case FIELD_FILE:
         info.file = value;
@@ -72,4 +67,3 @@ class Song {
     return new Song(info);
   }
 }
-module.exports = Song;
