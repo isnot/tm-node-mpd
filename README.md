@@ -1,4 +1,4 @@
-not-node-mpd
+tm-node-mpd
 ============
 
 This is fork of [node-mpd](https://github.com/Prior99/node-mpd) project by Frederick Gnodtke.
