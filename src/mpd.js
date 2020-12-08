@@ -96,7 +96,7 @@ module.exports = class MPD extends EventEmitter {
   }
 
   seek(songId, time) {
-    return this._sendCommand(`seek`, songId, time).then(r => this._answerCallbackError(r));
+    return this._sendCommand('seek', songId, time).then(r => this._answerCallbackError(r));
   }
 
   searchAdd(search) {
@@ -170,9 +170,9 @@ module.exports = class MPD extends EventEmitter {
         this.playlist = [];
         let songLines = [];
         let pos;
-        for(let i = 0; i < lines.length - 1; i++) {
+        for (let i = 0; i < lines.length - 1; i += 1) {
           let line = lines[i];
-          if (i !== 0 && line.startsWith('file:')) {
+          if (i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
             this.playlist[pos] = new Song(songLines);
             songLines = [];
             pos = -1;
@@ -197,9 +197,9 @@ module.exports = class MPD extends EventEmitter {
         let lines = message.split("\n");
         this.songs = [];
         let songLines = [];
-        for(let i = 0; i < lines.length - 1; i++) {
+        for (let i = 0; i < lines.length - 1; i += 1) {
           let line = lines[i];
-          if(i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
+          if (i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
             this.songs.push(new Song(songLines));
             songLines = [];
           }
@@ -216,15 +216,13 @@ module.exports = class MPD extends EventEmitter {
   parseStatusResponse(message) {
     let array = message.split("\n");
     for (let i in array) {
-      let keyValue = array[i].split(":");
+      let keyValue = array[i].split(':');
       if (keyValue.length < 2) {
-        if(array[i] !== "OK") {
+        if (array[i] !== 'OK') {
           this.restoreConnection();
           throw new Error("Unknown response while fetching status.");
         }
-        else {
-          continue;
-        }
+        continue;
       }
       let key = keyValue[0].trim();
       let value = keyValue[1].trim();
@@ -255,8 +253,8 @@ module.exports = class MPD extends EventEmitter {
         break;
       case "time":
         this.status.time = {
-          elapsed : parseInt(keyValue[1]),
-          length : parseInt(keyValue[2])
+          elapsed: parseInt(keyValue[1]),
+          length: parseInt(keyValue[2])
         };
         break;
       case "bitrate":
@@ -275,15 +273,15 @@ module.exports = class MPD extends EventEmitter {
    * Idle handling
    */
   _onMessage(message) {
-    try{
-      let match;
-      if(!(match = message.match(/changed:\s*(.*?)\s+OK/))) {
+    try {
+      const match = message.match(/changed:\s*(.*?)\s+OK/);
+      if (!match) {
         this.restoreConnection();
         throw new Error('Received unknown message during idle: ' + message);
       }
       this._enterIdle();
-      let updated = match[1];
-      let afterUpdate = () => {
+      const updated = match[1];
+      const afterUpdate = () => {
         this.emit('update', updated);
         this.emit('status', updated);
       };
@@ -357,7 +355,7 @@ module.exports = class MPD extends EventEmitter {
     this.buffer = this.buffer.substring(index, this.buffer.length);
     if (this.idling) {
       this._onMessage(string);
-    } else if(this.commanding) {
+    } else if (this.commanding) {
       this._handleResponse(string);
     }
   }
@@ -368,7 +366,7 @@ module.exports = class MPD extends EventEmitter {
   _enterIdle() {
     this.idling = true;
     this.commanding = false;
-    this._write("idle");
+    this._write('idle');
   }
 
   _leaveIdle(callback) {
@@ -377,7 +375,7 @@ module.exports = class MPD extends EventEmitter {
       this.commanding = true;
       callback();
     });
-    this._write("noidle");
+    this._write('noidle');
   }
 
   _checkIdle() {
