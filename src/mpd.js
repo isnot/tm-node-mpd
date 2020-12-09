@@ -72,8 +72,8 @@ module.exports = class MPD extends EventEmitter {
     if (err) throw err;
   }
 
-  genericCommand(cmdLine) {
-    return this._sendCommand(cmdLine).then(r => this._answerCallbackError(r));
+  genericCommand() {
+    return this._sendCommand(...arguments).then(r => this._answerCallbackError(r));
   }
 
   initGenericCommand() {
@@ -91,36 +91,40 @@ module.exports = class MPD extends EventEmitter {
   }
 
   add(name) {
-    return this._sendCommand('add', name).then(r => this._answerCallbackError(r));
+    return this.genericCommand('add', name);
   }
 
   playId(id) {
-    return this._sendCommand('play', id).then(r => this._answerCallbackError(r));
+    return this.genericCommand('play', id);
   }
 
   deleteId(id) {
-    return this._sendCommand(`delete`, id).then(r => this._answerCallbackError(r));
+    return this.genericCommand('delete', id);
   }
 
   volume(vol) {
-    return this._sendCommand('setvol', vol).then(r => this._answerCallbackError(r));
+    return this.genericCommand('setvol', vol);
   }
 
   repeat(repeat = 1) {
-    return this._sendCommand('repeat', repeat).then(r => this._answerCallbackError(r));
+    return this.genericCommand('repeat', repeat);
+  }
+
+  crossfade(seconds = 0) {
+    return this.genericCommand('crossfade', seconds);
   }
 
   seek(songId, time) {
-    return this._sendCommand('seek', songId, time).then(r => this._answerCallbackError(r));
+    return this.genericCommand('seek', songId, time);
   }
 
   searchAdd(search) {
     let args = ['searchadd'];
-    for(let key in search) {
+    for (let key in search) {
       args.push(key);
       args.push(search[key]);
     }
-    return this._sendCommand(...args).then(r => this._answerCallbackError(r));
+    return this.genericCommand(...args);
   }
 
   /**
