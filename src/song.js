@@ -66,4 +66,4 @@ module.exports = class Song {
     }
     return new Song(info);
   }
-}
+};

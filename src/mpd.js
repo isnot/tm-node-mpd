@@ -2,8 +2,11 @@ const Song = require('./song');
 const { Socket } = require('net');
 const { EventEmitter } = require('events');
 
-const DEFAULT_PORT = 6600;
-const DEFAULT_HOST = 'localhost';
+const DEF_PORT = 6600;
+const DEF_HOST = 'localhost';
+const DEF_SOCKET = '/var/run/mpd/socket';
+const DEF_CONN_TYPE = 'network';
+const CONN_TYPES = ['ipc', 'network'];
 const RECONNECT_INTERVAL = 5000;
 const CONST_FILE_LINE_START = 'file:';
 const GENERIC_COMMANDS = ['play', 'stop', 'pause', 'next', 'previous', 'toggle', 'clear'];
@@ -11,7 +14,7 @@ const GENERIC_COMMANDS = ['play', 'stop', 'pause', 'next', 'previous', 'toggle',
 if (!String.prototype.trim) {
   (function() {
     // Make sure we trim BOM and NBSP
-    let rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+    const rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
     String.prototype.trim = function() {
       return this.replace(rtrim, '');
     };
@@ -26,20 +29,32 @@ if (!String.prototype.startsWith) {
 }
 
 module.exports = class MPD extends EventEmitter {
+  /**
+   * MPD connection constructor.
+   * @param {Object} options MPD options.
+   * @param {string} options.ipc Path to the IPC(Unix Domain Socket).
+   * @param {string} options.host MPD service host.
+   * @param {number} options.port MPD service TCP port.
+   * @param {string} options.type MPD connection type: ipc/network.
+   */
   constructor(options = {}) {
-    super(options);
-    this.host = options.host || DEFAULT_HOST;
-    this.port = options.port || DEFAULT_PORT;
+    super();
+    // Applying options.
+    this.ipc = options.ipc || DEF_SOCKET;
+    this.host = options.host || DEF_HOST;
+    this.port = options.port || DEF_PORT;
+    this.type = CONN_TYPES.includes(options.type) ? options.type : DEF_CONN_TYPE;
+    // Init props.
+    this.songs = [];
+    this.status = {};
+    this.server = {};
+    this.buffer = '';
+    this.playlist = [];
     this._requests = [];
     this.connected = false;
     this.disconnecting = false;
-    this.status = {};
-    this.server = {};
-    this.songs = [];
-    this.playlist = [];
-    this.buffer = '';
     this.initGenericCommand();
-    this.on('disconnected', this.restoreConnection.bind(this));
+    this.on('disconnected', () => this.restoreConnection());
     return this;
   }
 
@@ -128,12 +143,14 @@ module.exports = class MPD extends EventEmitter {
         this.emit('error', e);
         this.emit('disconnected');
       });
-      this.client.connect(this.port, this.host, () => {
+      this.client.on('connect', () => {
         this.connected = true;
         clearInterval(this.reconnectInterval);
         this.reconnectInterval = null;
         this.client.once('data', this._initialGreeting.bind(this));
       });
+      // Connecting to the MPD via IPC or TCP.
+      this.client.connect(...(this.type === 'ipc' ? [this.ipc] : [this.port, this.host]));
     } catch(e) {
       this.restoreConnection();
     }
@@ -220,44 +237,44 @@ module.exports = class MPD extends EventEmitter {
       if (keyValue.length < 2) {
         if (array[i] !== 'OK') {
           this.restoreConnection();
-          throw new Error("Unknown response while fetching status.");
+          throw new Error('Unknown response while fetching status.');
         }
         continue;
       }
       let key = keyValue[0].trim();
       let value = keyValue[1].trim();
       switch(key) {
-      case "volume":
-        this.status.volume = parseFloat(value.replace("%", "")) / 100;
+      case 'volume':
+        this.status.volume = parseFloat(value.replace('%', '')) / 100;
         break;
-      case "repeat":
-        this.status.repeat = (value === "1");
+      case 'repeat':
+        this.status.repeat = (value === '1');
         break;
-      case "single":
-        this.status.single = (value === "1");
+      case 'single':
+        this.status.single = (value === '1');
         break;
-      case "consume":
-        this.status.consume = (value === "1");
+      case 'consume':
+        this.status.consume = (value === '1');
         break;
-      case "playlistlength":
+      case 'playlistlength':
         this.status.playlistlength = parseInt(value);
         break;
-      case "state":
+      case 'state':
         this.status.state = value;
         break;
-      case "xfade":
+      case 'xfade':
         this.status.xfade = parseInt(value);
         break;
-      case "song":
+      case 'song':
         this.status.song = parseInt(value);
         break;
-      case "time":
+      case 'time':
         this.status.time = {
           elapsed: parseInt(keyValue[1]),
           length: parseInt(keyValue[2])
         };
         break;
-      case "bitrate":
+      case 'bitrate':
         this.status.bitrate = parseInt(value);
         break;
       }

@@ -3,34 +3,40 @@ tm-node-mpd
 
 This is fork of [node-mpd](https://github.com/Prior99/node-mpd) project by Frederick Gnodtke.
 
-Here is original README.md content
+tm-node-mpd is a library for simple communicating with a [music player daemon](http://www.musicpd.org/).
+It uses a IPC and TCP-socket to communicate with the daemon and provides a list of highlevel promise based methods.
 
-node-mpd
-========
+Make sure to take a look at the [examples](https://github.com/RomanBurunkov/tm-node-mpd/tree/master/examples).
 
-node-mpd is a library for simple communicating with a [music player daemon](http://www.musicpd.org/).
-It uses a TCP-socket to communicate with the daemon and provides a list of highlevel methods.
+Available options
+------
 
-Make sure to take a look at the [examples](https://github.com/Prior99/node-mpd/tree/master/examples).
+You can pass options object to the MPD constructor.
+The following options are available:
+
+* type - connection type('ipc' or 'network'), default value is 'network'.
+* ipc - path to the unix socket(ipc), default value is '/var/run/mpd/socket'.
+* host - mpd service host, default value is 'localhost'.
+* port - mpd service TCP port, default value is 6600.
 
 Example
 ------
 This is a minimal exmaple which connects to a mpd running on localhost on the default port and prints the current playlist:
 
-	var MPD = require('node-mpd');
-	var mpd = new MPD();
+	const MPD = require('tm-node-mpd');
+	const mpd = new MPD(); // pass { type: 'ipc' } to connect local mpd via unix socket.
 
 ```javascript
-	mpd.on("ready", function() {
-		for(var num = 0; num < mpd.playlist.length; num++) {
-			var n = num + 1;
+	mpd.on('ready', () => {
+		for (let num = 0; num < mpd.playlist.length; num += 1) {
+			const n = num + 1;
 			console.log(n + ": " + mpd.playlist[num].artist + " - " + mpd.playlist[num].title);
 		}
 		mpd.disconnect();
 	});
 ```
 
-Make sure to take a look at the [examples](https://github.com/Prior99/node-mpd/tree/master/examples).
+Make sure to take a look at the [examples](https://github.com/RomanBurunkov/tm-node-mpd/tree/master/examples).
 
 License
 -------
