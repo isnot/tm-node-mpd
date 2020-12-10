@@ -239,60 +239,48 @@ module.exports = class MPD extends EventEmitter {
       });
   }
 
-  parseStatusResponse(message) {
-    let array = message.split("\n");
-    for (let i in array) {
-      let keyValue = array[i].split(':');
-      if (keyValue.length < 2) {
-        if (array[i] !== 'OK') {
-          this.restoreConnection();
-          throw new Error('Unknown response while fetching status.');
-        }
-        continue;
-      }
-      let key = keyValue[0].trim();
-      let value = keyValue[1].trim();
-      switch(key) {
-      case 'volume':
-        this.status.volume = parseFloat(value.replace('%', '')) / 100;
-        break;
+  parseKvp(kvp = '') {
+    const m = kvp.match(/(\S+)\s*:\s*(\S+)/);
+    return !Array.isArray(m) || m.length !== 3
+      ? false
+      : { key: m[1].trim(), val: m[2].trim() };
+  }
+
+  parseStatusResponseValue({ key, val }) {
+    switch (key) {
       case 'repeat':
-        this.status.repeat = (value === '1');
-        break;
       case 'single':
-        this.status.single = (value === '1');
-        break;
-      case 'consume':
-        this.status.consume = (value === '1');
-        break;
-      case 'playlistlength':
-        this.status.playlistlength = parseInt(value);
-        break;
-      case 'state':
-        this.status.state = value;
-        break;
-      case 'xfade':
-        this.status.xfade = parseInt(value);
-        break;
+      case 'random':
+      case 'consume': return val === '1';
       case 'song':
-        this.status.song = parseInt(value);
-        break;
-      case 'time':
-        this.status.time = {
-          elapsed: parseInt(keyValue[1]),
-          length: parseInt(keyValue[2])
-        };
-        break;
+      case 'xfade':
       case 'bitrate':
-        this.status.bitrate = parseInt(value);
-        break;
+      case 'playlist':
+      case 'playlistlength': return parseInt(val, 10);
+      case 'volume': return parseFloat(val.replace('%', '')) / 100;
+      case 'time': {
+        const times = val.split(':');
+        return { elapsed: times[0], length: times[1] };
       }
+      default: return val;
+    }
+  }
+
+  parseStatusResponse(message) {
+    for (let line of message.split("\n")) {
+      if (line === 'OK') continue;
+      const kvp = this.parseKvp(line);
+      if (kvp === false) {
+        throw new Error(`Unknown response while fetching status: ${line}`);
+      }
+      this.status[kvp.key] = this.parseStatusResponseValue(kvp);
     }
     return this.status;
   }
 
   updateStatus() {
-    return this._sendCommand('status').then(this.parseStatusResponse.bind(this));
+    return this._sendCommand('status')
+      .then(r => this.parseStatusResponse(r));
   }
 
   /**
@@ -303,7 +291,7 @@ module.exports = class MPD extends EventEmitter {
       const match = message.match(/changed:\s*(.*?)\s+OK/);
       if (!match) {
         this.restoreConnection();
-        throw new Error('Received unknown message during idle: ' + message);
+        throw new Error(`Received unknown message during idle: ${message}`);
       }
       this._enterIdle();
       const updated = match[1];
@@ -311,18 +299,12 @@ module.exports = class MPD extends EventEmitter {
         this.emit('update', updated);
         this.emit('status', updated);
       };
-      switch(updated) {
-      case 'mixer':
-      case 'player':
-      case 'options':
-        this.updateStatus().then(afterUpdate);
-        break;
-      case 'playlist':
-        this._updatePlaylist().then(afterUpdate);
-        break;
-      case 'database':
-        this._updateSongs().then(afterUpdate);
-        break;
+      switch (updated) {
+        case 'mixer':
+        case 'player':
+        case 'options': return this.updateStatus().then(afterUpdate);
+        case 'playlist': return this._updatePlaylist().then(afterUpdate);
+        case 'database': return this._updateSongs().then(afterUpdate);
       }
     } catch(e) {
       this.emit('error', e);
@@ -356,7 +338,7 @@ module.exports = class MPD extends EventEmitter {
       this.client.setKeepAlive(this.keepAlive);
     }
     this._enterIdle();
-    this.client.on('data', this._onData.bind(this));
+    this.client.on('data', data => this._onData(data));
     this.updateStatus()
       .then(this._updateSongs.bind(this))
       .then(this._updatePlaylist.bind(this))
@@ -419,10 +401,10 @@ module.exports = class MPD extends EventEmitter {
 
   _checkOutgoing() {
     if (this._activeListener || this.busy) return;
-    let request = this._requests.shift();
+    const request = this._requests.shift();
     if (!request) return;
     this.busy = true;
-    let deque = () => {
+    const deque = () => {
       this._activeListener = request.callback;
       this._activeMessage = request.message;
       this.busy = false;
