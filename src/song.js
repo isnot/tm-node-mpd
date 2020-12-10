@@ -38,30 +38,30 @@ module.exports = class Song {
       let key = keyValue[0].trim();
       let value = keyValue[1].trim();
       switch(key) {
-      case FIELD_FILE:
-        info.file = value;
-        break;
-      case FIELD_LAST_MODIFIED:
-        info.lastModified = new Date(value);
-        break;
-      case FIELD_TIME:
-        info.time = value;
-        break;
-      case FIELD_ARTIST:
-        info.artist = value;
-        break;
-      case FIELD_TITLE:
-        info.title = value;
-        break;
-      case FIELD_TRACK:
-        info.track = value;
-        break;
-      case FIELD_DATE:
-        info.date = value;
-        break;
-      case FIELD_GENRE:
-        info.genre = value;
-        break;
+        case FIELD_FILE:
+          info.file = value;
+          break;
+        case FIELD_LAST_MODIFIED:
+          info.lastModified = new Date(value);
+          break;
+        case FIELD_TIME:
+          info.time = value;
+          break;
+        case FIELD_ARTIST:
+          info.artist = value;
+          break;
+        case FIELD_TITLE:
+          info.title = value;
+          break;
+        case FIELD_TRACK:
+          info.track = value;
+          break;
+        case FIELD_DATE:
+          info.date = value;
+          break;
+        case FIELD_GENRE:
+          info.genre = value;
+          break;
       }
     }
     return new Song(info);
