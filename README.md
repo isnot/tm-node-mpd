@@ -19,6 +19,16 @@ The following options are available:
 * host - mpd service host, default value is 'localhost'.
 * port - mpd service TCP port, default value is 6600.
 
+Events
+------
+
+* ready - Emits after connected to the MPD service.
+* error - Emits when any errors occured.
+* update - Emits when got any updates from MPD service.
+* status - Emits when MPD service status has been updated.
+* disconnected - Emits after disconnecting from MPD service.
+
+
 Example
 ------
 This is a minimal exmaple which connects to a mpd running on localhost on the default port and prints the current playlist:
