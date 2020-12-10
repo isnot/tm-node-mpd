@@ -12,6 +12,8 @@ const RECONNECT_INTERVAL = 5000;
 const CONST_FILE_LINE_START = 'file:';
 const GENERIC_COMMANDS = ['play', 'stop', 'pause', 'next', 'previous', 'toggle', 'clear'];
 
+const buffer = Symbol('Read buffer');
+
 if (!String.prototype.trim) {
   (function() {
     // Make sure we trim BOM and NBSP
@@ -51,7 +53,7 @@ module.exports = class MPD extends EventEmitter {
     this.songs = [];
     this.status = {};
     this.server = {};
-    this.buffer = '';
+    this[buffer] = '';
     this.playlist = [];
     this._requests = [];
     this.connected = false;
@@ -374,12 +376,12 @@ module.exports = class MPD extends EventEmitter {
 
   _onData(data) {
     if (!this.idling && !this.commanding) return;
-    this.buffer += !data ? '' : data.trim();
-    const index = this.findReturn(this.buffer);
+    this[buffer] += !data ? '' : data.trim();
+    const index = this.findReturn(this[buffer]);
     if (index === -1) return;
     // We found a return mark
-    const string = this.buffer.substring(0, index).trim();
-    this.buffer = this.buffer.substring(index, this.buffer.length);
+    const string = this[buffer].substring(0, index).trim();
+    this[buffer] = this[buffer].substring(index, this[buffer].length);
     if (this.idling) {
       this._onMessage(string);
     } else if (this.commanding) {
