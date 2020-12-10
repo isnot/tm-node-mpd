@@ -5,6 +5,7 @@ const { EventEmitter } = require('events');
 const DEF_PORT = 6600;
 const DEF_HOST = 'localhost';
 const DEF_SOCKET = '/var/run/mpd/socket';
+const DEF_KEEP_ALIVE = false;
 const DEF_CONN_TYPE = 'network';
 const CONN_TYPES = ['ipc', 'network'];
 const RECONNECT_INTERVAL = 5000;
@@ -36,6 +37,7 @@ module.exports = class MPD extends EventEmitter {
    * @param {string} options.host MPD service host.
    * @param {number} options.port MPD service TCP port.
    * @param {string} options.type MPD connection type: ipc/network.
+   * @param {boolean} options.keepAlive Use keep alive for MPD network connection.
    */
   constructor(options = {}) {
     super();
@@ -44,6 +46,7 @@ module.exports = class MPD extends EventEmitter {
     this.host = options.host || DEF_HOST;
     this.port = options.port || DEF_PORT;
     this.type = CONN_TYPES.includes(options.type) ? options.type : DEF_CONN_TYPE;
+    this.keepAlive = !!options.keepAlive || DEF_KEEP_ALIVE;
     // Init props.
     this.songs = [];
     this.status = {};
@@ -151,7 +154,7 @@ module.exports = class MPD extends EventEmitter {
         this.connected = true;
         clearInterval(this.reconnectInterval);
         this.reconnectInterval = null;
-        this.client.once('data', this._initialGreeting.bind(this));
+        this.client.once('data', data => this._initialGreeting(data));
       });
       // Connecting to the MPD via IPC or TCP.
       this.client.connect(...(this.type === 'ipc' ? [this.ipc] : [this.port, this.host]));
@@ -343,10 +346,13 @@ module.exports = class MPD extends EventEmitter {
     const m = message.match(/OK\s(.+)\s(.+)/);
     if (!Array.isArray(m) || m.length !== 3) {
       this.restoreConnection();
-      throw new Error("Unknown values while receiving initial greeting");
+      throw new Error('Unknown values while receiving initial greeting');
     }
     this.server.name = m[1];
     this.server.version = m[2];
+    if (this.type === 'network' && this.keepAlive) {
+      this.client.setKeepAlive(this.keepAlive);
+    }
     this._enterIdle();
     this.client.on('data', this._onData.bind(this));
     this.updateStatus()
