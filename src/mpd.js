@@ -287,25 +287,39 @@ module.exports = class MPD extends EventEmitter {
    * Handle updates while in idle mode.
    * @param {string} message Message from MPD.
    */
-  _onMessage(message) {
+  async _onMessage(message) {
     try {
-      const match = message.match(/changed:\s*(.*?)\s+OK/);
-      if (!match) {
+      // It is possible to get a change event or just OK message
+      // as an answer on idle request.
+      if (message.match(/^\s*OK/)) return;
+      const matches = [...message.matchAll(/changed:\s*(.*)/g)];
+      if (!matches.length) {
         this.restoreConnection();
         throw new Error(`Received unknown message during idle: ${message}`);
       }
-      this._enterIdle();
-      const updated = match[1];
-      const afterUpdate = () => {
-        this.emit('update', updated);
-        this.emit('status', updated);
-      };
-      switch (updated) {
-        case 'mixer':
-        case 'player':
-        case 'options': return this.updateStatus().then(afterUpdate);
-        case 'playlist': return this._updatePlaylist().then(afterUpdate);
-        case 'database': return this._updateSongs().then(afterUpdate);
+      for (const match of matches) {
+        const update = match[1];
+        const afterUpdate = () => {
+          this.emit('update', update);
+          this.emit('status', update);
+        };
+        switch (update) {
+          case 'mixer':
+          case 'player':
+          case 'options':
+            await this.updateStatus();
+            afterUpdate();
+            break;
+          case 'playlist':
+            await this._updatePlaylist();
+            afterUpdate();
+            break;
+          case 'database':
+            await this._updateSongs();
+            afterUpdate();
+            break;
+        }
+        // this._enterIdle();
       }
     } catch(e) {
       this.emit('error', e);
@@ -338,7 +352,7 @@ module.exports = class MPD extends EventEmitter {
     if (this.type === 'network' && this.keepAlive) {
       this.client.setKeepAlive(this.keepAlive);
     }
-    // this._enterIdle();
+    this._enterIdle();
     this.client.on('data', data => this._onData(data));
     this.updateStatus()
       .then(() => this._updateSongs())
@@ -374,19 +388,38 @@ module.exports = class MPD extends EventEmitter {
 
   /**
    * Idling
+   * According to the mpd proto docs, player could send new events after idle command.
+   * So client data handler run once to catch new updates.
    */
   _enterIdle() {
     this.idling = true;
     this.commanding = false;
+    this.client.once('data', (data) => {
+      this.emit('idle', true, data);
+      this._onMessage(data);
+    });
     this._write('idle');
+    
   }
 
   _leaveIdle(callback) {
     this.idling = false;
-    this.client.once('data', () => {
+    let done = false;
+    const handler = (data) => {
+      done = true;
+      this.emit('idle', false, data);
       this.commanding = true;
       callback();
-    });
+    };
+    // In some cases MPD doesn't send anythig if noidle have sent.
+    // For such cases we can just try to reschedule noidle.
+    setTimeout(() => {
+      if (done) return;
+      this._enterIdle();
+      this.client.removeListener('data', handler);
+      this._leaveIdle(callback);
+    }, 500);
+    this.client.once('data', handler);
     this._write('noidle');
   }
 
