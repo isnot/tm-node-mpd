@@ -284,7 +284,8 @@ module.exports = class MPD extends EventEmitter {
   }
 
   /**
-   * Idle handling
+   * Handle updates while in idle mode.
+   * @param {string} message Message from MPD.
    */
   _onMessage(message) {
     try {
@@ -337,12 +338,12 @@ module.exports = class MPD extends EventEmitter {
     if (this.type === 'network' && this.keepAlive) {
       this.client.setKeepAlive(this.keepAlive);
     }
-    this._enterIdle();
+    // this._enterIdle();
     this.client.on('data', data => this._onData(data));
     this.updateStatus()
-      .then(this._updateSongs.bind(this))
-      .then(this._updatePlaylist.bind(this))
-      .then(this._setReady.bind(this))
+      .then(() => this._updateSongs())
+      .then(() => this._updatePlaylist())
+      .then(() => this._setReady())
       .catch(e => this.emit('error', e));
   }
 
@@ -439,8 +440,8 @@ module.exports = class MPD extends EventEmitter {
   }
 
   _handleResponse(message) {
+    if (!this._activeListener) return;
     const callback = this._activeListener;
-    if (!callback) return;
     this._activeListener = null;
     this._checkOutgoing();
     this._checkIdle();
