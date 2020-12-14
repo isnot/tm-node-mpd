@@ -308,18 +308,14 @@ module.exports = class MPD extends EventEmitter {
           case 'player':
           case 'options':
             await this.updateStatus();
-            afterUpdate();
-            break;
+            return afterUpdate();
           case 'playlist':
             await this._updatePlaylist();
-            afterUpdate();
-            break;
+            return afterUpdate();
           case 'database':
             await this._updateSongs();
-            afterUpdate();
-            break;
+            return afterUpdate();
         }
-        // this._enterIdle();
       }
     } catch(e) {
       this.emit('error', e);
@@ -372,18 +368,15 @@ module.exports = class MPD extends EventEmitter {
   }
 
   _onData(data) {
-    if (!this.idling && !this.commanding) return;
     this[buffer] += !data ? '' : data.trim();
     const index = this.findReturn(this[buffer]);
     if (index === -1) return;
     // We found a return mark
     const string = this[buffer].substring(0, index).trim();
     this[buffer] = this[buffer].substring(index, this[buffer].length);
-    if (this.idling) {
-      this._onMessage(string);
-    } else if (this.commanding) {
-      this._handleResponse(string);
-    }
+    return this.commanding
+      ? this._handleResponse(string)
+      : this._onMessage(string);
   }
 
   /**
@@ -394,20 +387,14 @@ module.exports = class MPD extends EventEmitter {
   _enterIdle() {
     this.idling = true;
     this.commanding = false;
-    this.client.once('data', (data) => {
-      this.emit('idle', true, data);
-      this._onMessage(data);
-    });
-    this._write('idle');
-    
+    this._write('idle');    
   }
 
   _leaveIdle(callback) {
     this.idling = false;
     let done = false;
-    const handler = (data) => {
+    const handler = () => {
       done = true;
-      this.emit('idle', false, data);
       this.commanding = true;
       callback();
     };
@@ -418,6 +405,7 @@ module.exports = class MPD extends EventEmitter {
       this._enterIdle();
       this.client.removeListener('data', handler);
       this._leaveIdle(callback);
+      callback();
     }, 500);
     this.client.once('data', handler);
     this._write('noidle');
