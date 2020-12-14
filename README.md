@@ -8,6 +8,8 @@ It uses a IPC and TCP-socket to communicate with the daemon and provides a list 
 
 Make sure to take a look at the [examples](https://github.com/RomanBurunkov/tm-node-mpd/tree/master/examples).
 
+Note that 0.2 branch was experimental. Do not use is it at all.
+
 Available options
 ------
 
@@ -28,6 +30,20 @@ Events
 * status - Emits when MPD service status has been updated.
 * disconnected - Emits after disconnecting from MPD service.
 
+Methods
+------
+
+This part of doc is still in progress.
+Please see the source code for all public methods.
+
+* `connect` connects to the mpd.
+* `disconnect` disconnects from the mpd.
+* `alive` returns true if instance connected to the mpd.
+* `command` sends a basic command specified in the first argument. Other arguments will be used as a commant parameters. E.g.
+
+```javascript
+  mpd.command('setvol', vol);
+```
 
 Example
 ------

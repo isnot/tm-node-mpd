@@ -58,34 +58,37 @@ module.exports = class MPD extends EventEmitter {
     this._requests = [];
     this.connected = false;
     this.disconnecting = false;
-    this.initGenericCommand();
+    this._initGenericCommand();
     this.on('disconnected', () => this.restoreConnection());
     return this;
   }
 
-  alive() {
-    return this.connected;
+  /**
+   * Sends a simple command specified in arguments to the mpd instance.
+   * First argument should be a command name.
+   * All further args will be uses as a command parameters.
+   * @returns {Promise}
+   */
+  command() {
+    return this._sendCommand(...arguments)
+      .then(r => this._answerCallbackError(r));
   }
 
-  _checkReturn(msg) {
-    if (msg === 'OK') return;
-    return new Error(`Bad status: "${msg}" after command "${this._activeMessage}"`);
-  }
+  alive() { return this.connected; }
 
-  _answerCallbackError(r) {
-    const err = this._checkReturn(r);
-    if (err) throw err;
-  }
+  add(name) { return this.command('add', name); }
 
-  genericCommand() {
-    return this._sendCommand(...arguments).then(r => this._answerCallbackError(r));
-  }
+  playId(id) { return this.command('play', id); }
 
-  initGenericCommand() {
-    for (let cmd of GENERIC_COMMANDS) {
-      this[cmd] = this.genericCommand.bind(this, [cmd]);
-    }
-  }
+  deleteId(id) { return this.command('delete', id); }
+
+  volume(vol) { return this.command('setvol', vol); }
+
+  repeat(repeat = 1) { return this.command('repeat', repeat); }
+
+  crossfade(seconds = 0) { return this.command('crossfade', seconds); }
+
+  seek(songId, time) { return this.command('seek', songId, time); }
 
   updateSongs() {
     return this._sendCommand('update')
@@ -95,41 +98,13 @@ module.exports = class MPD extends EventEmitter {
       });
   }
 
-  add(name) {
-    return this.genericCommand('add', name);
-  }
-
-  playId(id) {
-    return this.genericCommand('play', id);
-  }
-
-  deleteId(id) {
-    return this.genericCommand('delete', id);
-  }
-
-  volume(vol) {
-    return this.genericCommand('setvol', vol);
-  }
-
-  repeat(repeat = 1) {
-    return this.genericCommand('repeat', repeat);
-  }
-
-  crossfade(seconds = 0) {
-    return this.genericCommand('crossfade', seconds);
-  }
-
-  seek(songId, time) {
-    return this.genericCommand('seek', songId, time);
-  }
-
   searchAdd(search) {
     let args = ['searchadd'];
     for (let key in search) {
       args.push(key);
       args.push(search[key]);
     }
-    return this.genericCommand(...args);
+    return this.command(...args);
   }
 
   /**
@@ -189,6 +164,22 @@ module.exports = class MPD extends EventEmitter {
   /**
    * Not-so-toplevel methods
    */
+
+  _setReady() {
+    this.emit('ready', this.status, this.server);
+  }
+
+  _answerCallbackError(msg) {
+    if (msg === 'OK') return;
+    throw new Error(`Bad status: "${msg}" after command "${this._activeMessage}"`);
+  }
+
+  _initGenericCommand() {
+    for (let cmd of GENERIC_COMMANDS) {
+      this[cmd] = this.command.bind(this, [cmd]);
+    }
+  }
+
   _updatePlaylist() {
     return this._sendCommand('playlistinfo')
       .then((message) => {
@@ -239,14 +230,14 @@ module.exports = class MPD extends EventEmitter {
       });
   }
 
-  parseKvp(kvp = '') {
+  _parseKvp(kvp = '') {
     const m = kvp.match(/(\S+)\s*:\s*(\S+)/);
     return !Array.isArray(m) || m.length !== 3
       ? false
       : { key: m[1].trim(), val: m[2].trim() };
   }
 
-  parseStatusResponseValue({ key, val }) {
+  _parseStatusResponseValue({ key, val }) {
     switch (key) {
       case 'repeat':
       case 'single':
@@ -266,73 +257,26 @@ module.exports = class MPD extends EventEmitter {
     }
   }
 
-  parseStatusResponse(message) {
+  _parseStatusResponse(message) {
     for (let line of message.split("\n")) {
       if (line === 'OK') continue;
-      const kvp = this.parseKvp(line);
+      const kvp = this._parseKvp(line);
       if (kvp === false) {
         throw new Error(`Unknown response while fetching status: ${line}`);
       }
-      this.status[kvp.key] = this.parseStatusResponseValue(kvp);
+      this.status[kvp.key] = this._parseStatusResponseValue(kvp);
     }
     return this.status;
   }
 
   updateStatus() {
     return this._sendCommand('status')
-      .then(r => this.parseStatusResponse(r));
-  }
-
-  /**
-   * Handle updates while in idle mode.
-   * @param {string} message Message from MPD.
-   */
-  async _onMessage(message) {
-    try {
-      // It is possible to get a change event or just OK message
-      // as an answer on idle request.
-      if (message.match(/^\s*OK/)) return;
-      const matches = [...message.matchAll(/changed:\s*(.*)/g)];
-      if (!matches.length) {
-        this.restoreConnection();
-        throw new Error(`Received unknown message during idle: ${message}`);
-      }
-      for (const match of matches) {
-        const update = match[1];
-        const afterUpdate = () => {
-          this.emit('update', update);
-          this.emit('status', update);
-        };
-        switch (update) {
-          case 'mixer':
-          case 'player':
-          case 'options':
-            await this.updateStatus();
-            afterUpdate();
-            break;
-          case 'playlist':
-            await this._updatePlaylist();
-            afterUpdate();
-            break;
-          case 'database':
-            await this._updateSongs();
-            afterUpdate();
-            break;
-        }
-        // this._enterIdle();
-      }
-    } catch(e) {
-      this.emit('error', e);
-    }
+      .then(r => this._parseStatusResponse(r));
   }
 
   /*
    * Message handling
    */
-
-  _setReady() {
-    this.emit('ready', this.status, this.server);
-  }
 
   /**
    * Initiate MPD connection with greeting message.
@@ -352,8 +296,7 @@ module.exports = class MPD extends EventEmitter {
     if (this.type === 'network' && this.keepAlive) {
       this.client.setKeepAlive(this.keepAlive);
     }
-    this._enterIdle();
-    this.client.on('data', data => this._onData(data));
+    this.client.on('data', d => this._onData(d));
     this.updateStatus()
       .then(() => this._updateSongs())
       .then(() => this._updatePlaylist())
@@ -388,44 +331,69 @@ module.exports = class MPD extends EventEmitter {
 
   /**
    * Idling
-   * According to the mpd proto docs, player could send new events after idle command.
-   * So client data handler run once to catch new updates.
    */
+
+  _checkIdle() {
+    if (this._activeListener || this._requests.length || this.idling) return;
+    this._enterIdle();
+  }
+
   _enterIdle() {
     this.idling = true;
     this.commanding = false;
-    this.client.once('data', (data) => {
-      this.emit('idle', true, data);
-      this._onMessage(data);
-    });
-    this._write('idle');
-    
+    this._write('idle');    
   }
 
   _leaveIdle(callback) {
-    this.idling = false;
-    let done = false;
-    const handler = (data) => {
-      done = true;
-      this.emit('idle', false, data);
+    this.client.once('data', () => {
+      this.idling = false;
       this.commanding = true;
       callback();
-    };
-    // In some cases MPD doesn't send anythig if noidle have sent.
-    // For such cases we can just try to reschedule noidle.
-    setTimeout(() => {
-      if (done) return;
-      this._enterIdle();
-      this.client.removeListener('data', handler);
-      this._leaveIdle(callback);
-    }, 500);
-    this.client.once('data', handler);
+    });
     this._write('noidle');
   }
 
-  _checkIdle() {
-    if (!this._activeListener && this._requests.length == 0 && !this.idling) {
-      this._enterIdle();
+  /**
+   * Handle idle mode updates.
+   * @param {string} message Message from MPD.
+   */
+  async _onMessage(message) {
+    try {
+      this.idling = false;
+      this.commanding = true;
+      // It is possible to get a change event or just OK message
+      if (message.match(/^\s*OK/)) return;
+      const matches = [...message.matchAll(/changed:\s*(.*)/g)];
+      if (!matches.length) {
+        this.restoreConnection();
+        throw new Error(`Received unknown message during idle: ${message}`);
+      }
+      for (const match of matches) {
+        const update = match[1];
+        const afterUpdate = () => {
+          this.emit('update', update);
+          this.emit('status', update);
+        };
+        switch (update) {
+          case 'mixer':
+          case 'player':
+          case 'options':
+            await this.updateStatus();
+            afterUpdate();
+            break;
+          case 'playlist':
+            await this._updatePlaylist();
+            afterUpdate();
+            break;
+          case 'database':
+            await this._updateSongs();
+            afterUpdate();
+            break;
+        }
+      }
+      this._checkIdle();
+    } catch(e) {
+      this.emit('error', e);
     }
   }
 
@@ -433,22 +401,21 @@ module.exports = class MPD extends EventEmitter {
    * Sending messages
    */
 
+  _dequeue(request) {
+    this.busy = false;
+    this._activeListener = request.callback;
+    this._activeMessage = request.message;
+    this._write(request.message);
+  }
+
   _checkOutgoing() {
     if (this._activeListener || this.busy) return;
     const request = this._requests.shift();
     if (!request) return;
     this.busy = true;
-    const deque = () => {
-      this._activeListener = request.callback;
-      this._activeMessage = request.message;
-      this.busy = false;
-      this._write(request.message);
-    };
-    if (this.idling) {
-      this._leaveIdle(deque);
-    } else {
-      deque();
-    }
+    return this.idling
+      ? this._leaveIdle(() => this._dequeue(request))
+      : this._dequeue(request);
   }
 
   _sendCommand() {
