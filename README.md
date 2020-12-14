@@ -1,6 +1,8 @@
 tm-node-mpd
 ============
 
+[![npm](https://img.shields.io/npm/v/tm-node-mpd.svg)](https://www.npmjs.org/package/tm-node-mpd)
+
 This is fork of [node-mpd](https://github.com/Prior99/node-mpd) project by Frederick Gnodtke.
 
 tm-node-mpd is a library for simple communicating with a [music player daemon](http://www.musicpd.org/).
@@ -16,10 +18,10 @@ Available options
 You can pass options object to the MPD constructor.
 The following options are available:
 
-* type - connection type('ipc' or 'network'), default value is 'network'.
-* ipc - path to the unix socket(ipc), default value is '/var/run/mpd/socket'.
-* host - mpd service host, default value is 'localhost'.
-* port - mpd service TCP port, default value is 6600.
+* **type** connection type('ipc' or 'network'), default value is 'network'.
+* **ipc** path to the unix socket(ipc), default value is '/var/run/mpd/socket'.
+* **host** mpd service host, default value is 'localhost'.
+* **port** mpd service TCP port, default value is 6600.
 
 Events
 ------
