@@ -1,21 +1,26 @@
+const { parseKvp } = require('./protocol');
+
 const RES_OK = 'OK';
 const ERR_MSG_UNKNOWN = 'Unknown response while parsing song.';
-const FIELD_FILE = 'file';
-const FIELD_LAST_MODIFIED = 'Last-Modified';
-const FIELD_TIME = 'Time';
-const FIELD_ARTIST = 'Artist';
-const FIELD_TITLE = 'Title';
-const FIELD_TRACK = 'Track';
-const FIELD_DATE = 'Date';
-const FIELD_GENRE = 'Genre';
+
+const FIELD_MAP = [
+  { key: 'file', val: 'file' },
+  { key: 'time', val: 'Time' },
+  { key: 'date', val: 'Date' },
+  { key: 'genre', val: 'Genre' },
+  { key: 'title', val: 'Title' },
+  { key: 'album', val: 'Album' },
+  { key: 'track', val: 'Track' },
+  { key: 'artist', val: 'Artist' },
+  { key: 'lastModified', val: 'Last-Modified' }
+];
 
 module.exports = class Song {
-  constructor(info) {
-    if (Array.isArray(info)) return this.createFromInfoArray(info);
+  constructor(data) {
+    const info = this._parseInfo(data);
     for (let key in info) {
       this[key] = info[key];
     }
-    return this;
   }
 
   flatCopy() {
@@ -27,43 +32,18 @@ module.exports = class Song {
     return obj;
   }
 
-  createFromInfoArray(lines) {
-    let info = {};
-    for (let i = 0; i < lines.length; i++) {
-      let keyValue = lines[i].split(':');
-      if (keyValue.length < 2) {
-        if (lines[i] !== RES_OK) throw new Error(ERR_MSG_UNKNOWN);
-        continue;
-      }
-      let key = keyValue[0].trim();
-      let value = keyValue[1].trim();
-      switch(key) {
-        case FIELD_FILE:
-          info.file = value;
-          break;
-        case FIELD_LAST_MODIFIED:
-          info.lastModified = new Date(value);
-          break;
-        case FIELD_TIME:
-          info.time = value;
-          break;
-        case FIELD_ARTIST:
-          info.artist = value;
-          break;
-        case FIELD_TITLE:
-          info.title = value;
-          break;
-        case FIELD_TRACK:
-          info.track = value;
-          break;
-        case FIELD_DATE:
-          info.date = value;
-          break;
-        case FIELD_GENRE:
-          info.genre = value;
-          break;
-      }
-    }
-    return new Song(info);
+  _parseInfo(data) {
+    if (!Array.isArray(data)) return data;
+    const info = {};
+    data
+      .filter(itm => itm !== RES_OK)
+      .forEach((itm) => {
+        const kvp = parseKvp(itm);
+        if (!kvp) throw new Error(ERR_MSG_UNKNOWN);
+        const fieldInfo = FIELD_MAP.find(fldKvp => fldKvp.val === kvp.key);
+        if (!fieldInfo) return;
+        info[fieldInfo.key] = kvp.val;
+      });
+    return info;
   }
 };
