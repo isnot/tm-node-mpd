@@ -1,5 +1,6 @@
 const Song = require('./song');
 const { Socket } = require('net');
+const { parseKvp } = require('./protocol');
 const { EventEmitter } = require('events');
 
 const DEF_PORT = 6600;
@@ -230,13 +231,6 @@ module.exports = class MPD extends EventEmitter {
       });
   }
 
-  _parseKvp(kvp = '') {
-    const m = kvp.match(/(\S+)\s*:\s*(\S+)/);
-    return !Array.isArray(m) || m.length !== 3
-      ? false
-      : { key: m[1].trim(), val: m[2].trim() };
-  }
-
   _parseStatusResponseValue({ key, val }) {
     switch (key) {
       case 'repeat':
@@ -260,7 +254,7 @@ module.exports = class MPD extends EventEmitter {
   _parseStatusResponse(message) {
     for (let line of message.split("\n")) {
       if (line === 'OK') continue;
-      const kvp = this._parseKvp(line);
+      const kvp = parseKvp(line);
       if (kvp === false) {
         throw new Error(`Unknown response while fetching status: ${line}`);
       }
