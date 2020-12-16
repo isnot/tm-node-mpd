@@ -257,9 +257,6 @@ module.exports = class MPD extends EventEmitter {
 
   /**
    * Initiate MPD connection with greeting message.
-   * According to the MPD protocol documentation when the client connects to the server,
-   * the server will answer with the following line: 'OK MPD version'
-   * where version is a protocol version identifier such as 0.12.2.
    * @param {string} message 
    */
   _initialGreeting(message) {
