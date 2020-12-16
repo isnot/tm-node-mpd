@@ -1,7 +1,7 @@
 const Song = require('./song');
 const { Socket } = require('net');
-const { parseKvp } = require('./protocol');
 const { EventEmitter } = require('events');
+const { parseKvp, parseGreeting } = require('./protocol');
 
 const DEF_PORT = 6600;
 const DEF_HOST = 'localhost';
@@ -263,13 +263,11 @@ module.exports = class MPD extends EventEmitter {
    * @param {string} message 
    */
   _initialGreeting(message) {
-    const m = message.match(/OK\s(.+)\s(.+)/);
-    if (!Array.isArray(m) || m.length !== 3) {
+    this.server = parseGreeting(message);
+    if (this.server === false) {
       this.restoreConnection();
-      throw new Error('Unknown values while receiving initial greeting');
+      throw new Error(`Unexpected greeting message: '${message}'!`);
     }
-    this.server.name = m[1];
-    this.server.version = m[2];
     if (this.type === 'network' && this.keepAlive) {
       this.client.setKeepAlive(this.keepAlive);
     }
