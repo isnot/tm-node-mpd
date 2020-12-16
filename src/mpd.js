@@ -15,16 +15,6 @@ const GENERIC_COMMANDS = ['play', 'stop', 'pause', 'next', 'previous', 'toggle',
 
 const buffer = Symbol('Read buffer');
 
-if (!String.prototype.trim) {
-  (function() {
-    // Make sure we trim BOM and NBSP
-    const rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
-    String.prototype.trim = function() {
-      return this.replace(rtrim, '');
-    };
-  })();
-}
-
 if (!String.prototype.startsWith) {
   String.prototype.startsWith = function(searchString, position) {
     position = position || 0;
