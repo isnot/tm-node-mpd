@@ -336,13 +336,13 @@ module.exports = class MPD extends EventEmitter {
       this.commanding = true;
       // It is possible to get a change event or just OK message
       if (message.match(/^\s*OK/)) return;
-      const matches = [...message.matchAll(/changed:\s*(.*)/g)];
+      const matches = [...message.match(/(?:changed:\s*)(.*)/g)];
       if (!matches.length) {
         this.restoreConnection();
         throw new Error(`Received unknown message during idle: ${message}`);
       }
       for (const match of matches) {
-        const update = match[1];
+        const update = match.substring(9);
         const afterUpdate = () => {
           this.emit('update', update);
           this.emit('status', update);
