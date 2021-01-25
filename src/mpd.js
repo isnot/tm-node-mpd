@@ -153,7 +153,7 @@ module.exports = class MPD extends EventEmitter {
     this.emit('ready', this.status, this.server);
   }
 
-  _answerCallbackError(msg) {
+  async _answerCallbackError(msg) {
     if (msg === 'OK') return;
     throw new Error(`Bad status: "${msg}" after command "${this._activeMessage}"`);
   }
@@ -230,7 +230,7 @@ module.exports = class MPD extends EventEmitter {
     }
   }
 
-  _parseStatusResponse(message) {
+  async _parseStatusResponse(message) {
     for (let line of message.split("\n")) {
       if (line === 'OK') continue;
       const kvp = parseKvp(line);
@@ -255,7 +255,7 @@ module.exports = class MPD extends EventEmitter {
    * Initiate MPD connection with greeting message.
    * @param {string} message
    */
-  _initialGreeting(message) {
+  async _initialGreeting(message) {
     this.server = parseGreeting(message);
     if (this.server === false) {
       this.restoreConnection();
@@ -267,11 +267,14 @@ module.exports = class MPD extends EventEmitter {
     this.client.on('data', async (d) => {
       await this._onData(d);
     });
-    this.updateStatus()
-      .then(() => this._updateSongs())
-      .then(() => this._updatePlaylist())
-      .then(() => this._setReady())
-      .catch(e => this.emit('error', e));
+    try {
+      await this.updateStatus();
+      await this._updateSongs();
+      await this._updatePlaylist();
+      await this._setReady();
+    } catch (e) {
+      this.emit('error', e);
+    }
   }
 
   findReturn(message) {
