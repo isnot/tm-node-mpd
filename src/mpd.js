@@ -58,21 +58,37 @@ module.exports = class MPD extends EventEmitter {
     return await this._answerCallbackError(r);
   }
 
-  alive() { return this.connected; }
+  alive() {
+    return this.connected;
+  }
 
-  async add(name) { return await this.command('add', name); }
+  async add(name) {
+    return await this.command('add', name);
+  }
 
-  async playId(id) { return await this.command('play', id); }
+  async playId(id) {
+    return await this.command('play', id);
+  }
 
-  async deleteId(id) { return await this.command('delete', id); }
+  async deleteId(id) {
+    return await this.command('delete', id);
+  }
 
-  async volume(vol) { return await this.command('setvol', vol); }
+  async volume(vol) {
+    return await this.command('setvol', vol);
+  }
 
-  async repeat(repeat = 1) { return await this.command('repeat', repeat); }
+  async repeat(repeat = 1) {
+    return await this.command('repeat', repeat);
+  }
 
-  async crossfade(seconds = 0) { return await this.command('crossfade', seconds); }
+  async crossfade(seconds = 0) {
+    return await this.command('crossfade', seconds);
+  }
 
-  async seek(songId, time) { return await this.command('seek', songId, time); }
+  async seek(songId, time) {
+    return await this.command('seek', songId, time);
+  }
 
   async updateSongs() {
     const r = await this._sendCommand('update');
@@ -87,6 +103,23 @@ module.exports = class MPD extends EventEmitter {
       args.push(search[key]);
     }
     return await this.command(...args);
+  }
+
+  async currentSong() {
+    const r = await this._sendCommand('currentsong');
+    const arr = r.split('\n');
+    const res_status = arr.pop();
+    await this._answerCallbackError(res_status);
+    const data = {};
+    try {
+      for (const line of arr) {
+        const kvp = parseKvp(line);
+        data[kvp.key] = kvp.val;
+      }
+    } catch (e) {
+      throw new Error(`Unknown response while fetching currentsong: ${e}`);
+    }
+    return data;
   }
 
   /**
@@ -119,7 +152,7 @@ module.exports = class MPD extends EventEmitter {
       });
       // Connecting to the MPD via IPC or TCP.
       this.client.connect(...(this.type === 'ipc' ? [this.ipc] : [this.port, this.host]));
-    } catch(e) {
+    } catch (e) {
       this.restoreConnection();
     }
   }
@@ -166,7 +199,7 @@ module.exports = class MPD extends EventEmitter {
 
   async _updatePlaylist() {
     const message = await this._sendCommand('playlistinfo');
-    const lines = message.split("\n");
+    const lines = message.split('\n');
     this.playlist = [];
     let songLines = [];
     let pos;
@@ -178,7 +211,7 @@ module.exports = class MPD extends EventEmitter {
         pos = -1;
       }
       if (line.startsWith('Pos')) {
-        pos = parseInt(line.split(':')[1].trim());
+        pos = parseInt(line.split(':')[1].trim(), 10);
       } else {
         songLines.push(line);
       }
@@ -192,7 +225,7 @@ module.exports = class MPD extends EventEmitter {
 
   async _updateSongs() {
     const message = await this._sendCommand('listallinfo');
-    const lines = message.split("\n");
+    const lines = message.split('\n');
     this.songs = [];
     let songLines = [];
     for (let i = 0; i < lines.length - 1; i += 1) {
@@ -215,29 +248,34 @@ module.exports = class MPD extends EventEmitter {
       case 'repeat':
       case 'single':
       case 'random':
-      case 'consume': return val === '1';
+      case 'consume':
+        return val === '1';
       case 'song':
       case 'xfade':
       case 'bitrate':
       case 'playlist':
-      case 'playlistlength': return parseInt(val, 10);
-      case 'volume': return parseFloat(val.replace('%', '')) / 100;
+      case 'playlistlength':
+        return parseInt(val, 10);
+      case 'volume':
+        return parseFloat(val.replace('%', '')) / 100;
       case 'time': {
         const times = val.split(':');
         return { elapsed: times[0], length: times[1] };
       }
-      default: return val;
+      default:
+        return val;
     }
   }
 
   async _parseStatusResponse(message) {
-    for (let line of message.split("\n")) {
-      if (line === 'OK') continue;
-      const kvp = parseKvp(line);
-      if (kvp === false) {
-        throw new Error(`Unknown response while fetching status: ${line}`);
+    try {
+      for (const line of message.split('\n')) {
+        if (line === 'OK') continue;
+        const kvp = parseKvp(line);
+        this.status[kvp.key] = this._parseStatusResponseValue(kvp);
       }
-      this.status[kvp.key] = this._parseStatusResponseValue(kvp);
+    } catch (e) {
+      throw new Error(`Unknown response while fetching status: ${e}`);
     }
     return this.status;
   }
@@ -256,10 +294,11 @@ module.exports = class MPD extends EventEmitter {
    * @param {string} message
    */
   async _initialGreeting(message) {
-    this.server = parseGreeting(message);
-    if (this.server === false) {
+    try {
+      this.server = parseGreeting(message);
+    } catch (e) {
       this.restoreConnection();
-      throw new Error(`Unexpected greeting message: '${message}'!`);
+      throw new Error(`Unexpected greeting message: '${message}'! ${e}`);
     }
     if (this.type === 'network' && this.keepAlive) {
       this.client.setKeepAlive(this.keepAlive);
@@ -365,7 +404,7 @@ module.exports = class MPD extends EventEmitter {
         }
       }
       this._checkIdle();
-    } catch(e) {
+    } catch (e) {
       this.emit('error', e);
     }
   }
@@ -386,9 +425,7 @@ module.exports = class MPD extends EventEmitter {
     const request = this._requests.shift();
     if (!request) return;
     this.busy = true;
-    return this.idling
-      ? this._leaveIdle(() => this._dequeue(request))
-      : this._dequeue(request);
+    return this.idling ? this._leaveIdle(() => this._dequeue(request)) : this._dequeue(request);
   }
 
   async _sendCommand() {
@@ -406,7 +443,7 @@ module.exports = class MPD extends EventEmitter {
       try {
         this._requests.push({ message, callback: resolve, errorback: reject });
         this._checkOutgoing();
-      } catch(e) {
+      } catch (e) {
         reject(e);
       }
     });
@@ -428,8 +465,8 @@ module.exports = class MPD extends EventEmitter {
         this.restoreConnection();
         throw new Error('Disconnect while writing to MPD: ' + text);
       }
-      this.client.write(text + "\n");
-    } catch(e) {
+      this.client.write(text + '\n');
+    } catch (e) {
       this.emit('error', e);
     }
   }
