@@ -105,23 +105,6 @@ module.exports = class MPD extends EventEmitter {
     return await this.command(...args);
   }
 
-  async currentSong() {
-    const r = await this._sendCommand('currentsong');
-    const arr = r.split('\n');
-    const res_status = arr.pop();
-    await this._answerCallbackError(res_status);
-    const data = {};
-    try {
-      for (const line of arr) {
-        const kvp = parseKvp(line);
-        data[kvp.key] = kvp.val;
-      }
-    } catch (e) {
-      throw new Error(`Unknown response while fetching currentsong: ${e}`);
-    }
-    return data;
-  }
-
   /**
    * Connect and disconnect
    */
