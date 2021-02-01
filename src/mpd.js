@@ -58,6 +58,23 @@ module.exports = class MPD extends EventEmitter {
     return await this._answerCallbackError(r);
   }
 
+  async query() {
+    const r = await this._sendCommand(...arguments);
+    const arr = r.split('\n');
+    const res_status = arr.pop();
+    await this._answerCallbackError(res_status);
+    const data = {};
+    try {
+      for (const line of arr) {
+        const kvp = parseKvp(line);
+        data[kvp.key] = kvp.val;
+      }
+    } catch (e) {
+      throw new Error(`An error occurred while parsing the query response. %o, $o`, arguments, e);
+    }
+    return data;
+  }
+
   alive() {
     return this.connected;
   }
@@ -103,23 +120,6 @@ module.exports = class MPD extends EventEmitter {
       args.push(search[key]);
     }
     return await this.command(...args);
-  }
-
-  async currentSong() {
-    const r = await this._sendCommand('currentsong');
-    const arr = r.split('\n');
-    const res_status = arr.pop();
-    await this._answerCallbackError(res_status);
-    const data = {};
-    try {
-      for (const line of arr) {
-        const kvp = parseKvp(line);
-        data[kvp.key] = kvp.val;
-      }
-    } catch (e) {
-      throw new Error(`Unknown response while fetching currentsong: ${e}`);
-    }
-    return data;
   }
 
   /**
