@@ -70,7 +70,7 @@ module.exports = class MPD extends EventEmitter {
         data[kvp.key] = kvp.val;
       }
     } catch (e) {
-      throw new Error(`An error occurred while parsing the query response. %o, $o`, arguments, e);
+      throw new Error(`An error occurred while parsing the query response. ${e}`);
     }
     return data;
   }
