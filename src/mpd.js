@@ -55,7 +55,7 @@ module.exports = class MPD extends EventEmitter {
    */
   async command() {
     const r = await this._sendCommand(...arguments);
-    return await this._answerCallbackError(r);
+    return this._answerCallbackError(r);
   }
 
   async query() {
@@ -80,37 +80,37 @@ module.exports = class MPD extends EventEmitter {
   }
 
   async add(name) {
-    return await this.command('add', name);
+    return this.command('add', name);
   }
 
   async playId(id) {
-    return await this.command('play', id);
+    return this.command('play', id);
   }
 
   async deleteId(id) {
-    return await this.command('delete', id);
+    return this.command('delete', id);
   }
 
   async volume(vol) {
-    return await this.command('setvol', vol);
+    return this.command('setvol', vol);
   }
 
   async repeat(repeat = 1) {
-    return await this.command('repeat', repeat);
+    return this.command('repeat', repeat);
   }
 
   async crossfade(seconds = 0) {
-    return await this.command('crossfade', seconds);
+    return this.command('crossfade', seconds);
   }
 
   async seek(songId, time) {
-    return await this.command('seek', songId, time);
+    return this.command('seek', songId, time);
   }
 
   async updateSongs() {
     const r = await this._sendCommand('update');
     const arr = r.split(/\n/);
-    return await this._answerCallbackError(arr[1]);
+    return this._answerCallbackError(arr[1]);
   }
 
   async searchAdd(search) {
@@ -119,7 +119,7 @@ module.exports = class MPD extends EventEmitter {
       args.push(key);
       args.push(search[key]);
     }
-    return await this.command(...args);
+    return this.command(...args);
   }
 
   /**
@@ -282,7 +282,7 @@ module.exports = class MPD extends EventEmitter {
 
   async updateStatus() {
     const r = await this._sendCommand('status');
-    return await this._parseStatusResponse(r);
+    return this._parseStatusResponse(r);
   }
 
   /*
