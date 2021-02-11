@@ -2,9 +2,13 @@ const proto = require('../src/protocol');
 
 describe('Test parseKvp function', () => {
   test('Is defined', () => expect(proto.parseKvp).toBeDefined());
-  test('Throw error if no data passed', () => expect(() => {proto.parseKvp()}).toThrow('found void data in parseKvp'));
+  test('Throw error if no data passed', () => expect(() => {
+    proto.parseKvp();
+  }).toThrow('found void data in parseKvp'));
   test('Throw error if passed string doesnt match kvp format', () => {
-    expect(() => {proto.parseKvp('no kvp')}).toThrow('occurred invalid string in parseKvp');
+    expect(() => {
+      proto.parseKvp('no kvp');
+    }).toThrow('occurred invalid string in parseKvp');
   });
   test('Returned Object if passed string matches kvp format', () => {
     expect(typeof proto.parseKvp('vol: 42')).toBe('object');
@@ -28,9 +32,13 @@ describe('Test parseKvp function', () => {
 describe('Test parseGreeting function', () => {
   const error_message = 'occurred invalid string in parseGreeting';
   test('Is defined', () => expect(proto.parseGreeting).toBeDefined());
-  test('Throw error if no data passed', () => expect(() => {proto.parseGreeting()}).toThrow(error_message));
+  test('Throw error if no data passed', () => expect(() => {
+    proto.parseGreeting();
+  }).toThrow(error_message));
   test('Throw error if passed string doesnt match greetings format', () => {
-    expect(() => {proto.parseGreeting('Failed greetings')}).toThrow(error_message);
+    expect(() => {
+      proto.parseGreeting('Failed greetings');
+    }).toThrow(error_message);
   });
   test('Returned Object if passed string matches greetings format', () => {
     expect(typeof proto.parseGreeting('OK MPD 0.20.2')).toBe('object');
