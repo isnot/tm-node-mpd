@@ -58,3 +58,9 @@ describe('Test parseGreeting function', () => {
     expect(greeting.version).toBe('0.20.2');
   });
 });
+
+test('parseKvp: value contains white spaces.', () => {
+  expect.assertions(2);
+  expect(proto.parseKvp('Artist: Various Artists')).not.toHaveProperty('val', 'Various');
+  expect(proto.parseKvp('Title: Lazy fox jumps.')).toHaveProperty('val', 'Lazy fox jumps.');
+});
