@@ -10,7 +10,7 @@ module.exports.parseKvp = (kvp = '') => {
   if (!kvp) {
     throw new Error('found void data in parseKvp');
   }
-  const m = kvp.replace(/\s+/g, ' ').match(/(\S+) ?: ?(.+)$/);
+  const m = kvp.match(/(\S+)\s*:\s*(.+)$/);
   if (Array.isArray(m) && m.length === 3) {
     return { key: m[1].trim(), val: m[2].trim() };
   }
