@@ -11,16 +11,24 @@
     "mocha": true
   },
   "plugins": [
+    "prettier",
+    "node",
+    "security",
     "security-node",
     "jest"
   ],
   "extends": [
     "eslint:recommended",
     "plugin:node/recommended",
-    "plugin:security-node/recommended"
+    "plugin:security/recommended",
+    "plugin:security-node/recommended",
+    "plugin:prettier/recommended"
   ],
   "rules": {
+    "prettier/prettier": "error",
+    "node/exports-style": ["error", "module.exports"],
     "node/no-deprecated-api": ["error", { "version": ">=10.13.0" }],
+    "security-node/detect-crlf": [0],
     "indent": ["error", 2, { "SwitchCase": 1 }],
     "linebreak-style": [
       "error",
@@ -30,6 +38,24 @@
       "error",
       "always"
     ],
-    "no-useless-escape": [0]
+    "semi-spacing": [
+      "error",
+      {
+        "after": true,
+        "before": false
+      }
+    ],
+    "semi-style": [
+      "error",
+      "last"
+    ],
+    "no-extra-semi": "error",
+    "no-unexpected-multiline": "error",
+    "no-unreachable": "error",
+    "no-useless-escape": [0],
+    "quotes": [
+      "error",
+      "single"
+    ]
   }
 }
