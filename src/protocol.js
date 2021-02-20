@@ -7,11 +7,14 @@
  * @returns {Object|false} KVP object of false if parsing failed.
  */
 module.exports.parseKvp = (kvp = '') => {
-  if (!kvp) return false;
+  if (!kvp) {
+    throw new Error('found void data in parseKvp');
+  }
   const m = kvp.match(/(\S+)\s*:\s*(.+)$/);
-  return Array.isArray(m) && m.length === 3
-    ? { key: m[1].trim(), val: m[2].trim() }
-    : false;
+  if (Array.isArray(m) && m.length === 3) {
+    return { key: m[1].trim(), val: m[2].trim() };
+  }
+  throw new Error('occurred invalid string in parseKvp');
 };
 
 /**
@@ -24,9 +27,10 @@ module.exports.parseKvp = (kvp = '') => {
  */
 module.exports.parseGreeting = (message = '') => {
   const m = message.match(/OK\s(.+)\s(.+)/);
-  return Array.isArray(m) && m.length === 3
-    ? { name: m[1], version: m[2] }
-    : false;
+  if (Array.isArray(m) && m.length === 3) {
+    return { name: m[1], version: m[2] };
+  }
+  throw new Error('occurred invalid string in parseGreeting');
 };
 
 /**

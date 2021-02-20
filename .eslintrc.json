@@ -1,15 +1,26 @@
 {
   "parserOptions": {
-    "ecmaVersion": 8,
+    "ecmaVersion": 2020,
     "sourceType": "module"
   },
   "env": {
-    "es6": true,
+    "es2020": true,
     "node": true,
+    "commonjs": true,
+    "jest/globals": true,
     "mocha": true
   },
-  "extends": "eslint:recommended",
+  "plugins": [
+    "security-node",
+    "jest"
+  ],
+  "extends": [
+    "eslint:recommended",
+    "plugin:node/recommended",
+    "plugin:security-node/recommended"
+  ],
   "rules": {
+    "node/no-deprecated-api": ["error", { "version": ">=10.13.0" }],
     "indent": ["error", 2, { "SwitchCase": 1 }],
     "linebreak-style": [
       "error",

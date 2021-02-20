@@ -53,36 +53,67 @@ module.exports = class MPD extends EventEmitter {
    * All further args will be uses as a command parameters.
    * @returns {Promise}
    */
-  command() {
-    return this._sendCommand(...arguments)
-      .then(r => this._answerCallbackError(r));
+  async command() {
+    const r = await this._sendCommand(...arguments);
+    return this._answerCallbackError(r);
   }
 
-  alive() { return this.connected; }
-
-  add(name) { return this.command('add', name); }
-
-  playId(id) { return this.command('play', id); }
-
-  deleteId(id) { return this.command('delete', id); }
-
-  volume(vol) { return this.command('setvol', vol); }
-
-  repeat(repeat = 1) { return this.command('repeat', repeat); }
-
-  crossfade(seconds = 0) { return this.command('crossfade', seconds); }
-
-  seek(songId, time) { return this.command('seek', songId, time); }
-
-  updateSongs() {
-    return this._sendCommand('update')
-      .then((r) => {
-        let arr = r.split(/\n/);
-        return this._answerCallbackError(arr[1]);
-      });
+  async query() {
+    const r = await this._sendCommand(...arguments);
+    const arr = r.split('\n');
+    const res_status = arr.pop();
+    await this._answerCallbackError(res_status);
+    const data = {};
+    try {
+      for (const line of arr) {
+        const kvp = parseKvp(line);
+        data[kvp.key] = kvp.val;
+      }
+    } catch (e) {
+      throw new Error(`An error occurred while parsing the query response. ${e}`);
+    }
+    return data;
   }
 
-  searchAdd(search) {
+  alive() {
+    return this.connected;
+  }
+
+  async add(name) {
+    return this.command('add', name);
+  }
+
+  async playId(id) {
+    return this.command('play', id);
+  }
+
+  async deleteId(id) {
+    return this.command('delete', id);
+  }
+
+  async volume(vol) {
+    return this.command('setvol', vol);
+  }
+
+  async repeat(repeat = 1) {
+    return this.command('repeat', repeat);
+  }
+
+  async crossfade(seconds = 0) {
+    return this.command('crossfade', seconds);
+  }
+
+  async seek(songId, time) {
+    return this.command('seek', songId, time);
+  }
+
+  async updateSongs() {
+    const r = await this._sendCommand('update');
+    const arr = r.split(/\n/);
+    return this._answerCallbackError(arr[1]);
+  }
+
+  async searchAdd(search) {
     let args = ['searchadd'];
     for (let key in search) {
       args.push(key);
@@ -115,11 +146,13 @@ module.exports = class MPD extends EventEmitter {
         this.connected = true;
         clearInterval(this.reconnectInterval);
         this.reconnectInterval = null;
-        this.client.once('data', data => this._initialGreeting(data));
+        this.client.once('data', async (data) => {
+          await this._initialGreeting(data);
+        });
       });
       // Connecting to the MPD via IPC or TCP.
       this.client.connect(...(this.type === 'ipc' ? [this.ipc] : [this.port, this.host]));
-    } catch(e) {
+    } catch (e) {
       this.restoreConnection();
     }
   }
@@ -153,65 +186,61 @@ module.exports = class MPD extends EventEmitter {
     this.emit('ready', this.status, this.server);
   }
 
-  _answerCallbackError(msg) {
+  async _answerCallbackError(msg) {
     if (msg === 'OK') return;
     throw new Error(`Bad status: "${msg}" after command "${this._activeMessage}"`);
   }
 
-  _initGenericCommand() {
+  async _initGenericCommand() {
     for (let cmd of GENERIC_COMMANDS) {
-      this[cmd] = this.command.bind(this, [cmd]);
+      this[cmd] = await this.command.bind(this, [cmd]);
     }
   }
 
-  _updatePlaylist() {
-    return this._sendCommand('playlistinfo')
-      .then((message) => {
-        let lines = message.split("\n");
-        this.playlist = [];
-        let songLines = [];
-        let pos;
-        for (let i = 0; i < lines.length - 1; i += 1) {
-          let line = lines[i];
-          if (i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
-            this.playlist[pos] = new Song(songLines);
-            songLines = [];
-            pos = -1;
-          }
-          if (line.startsWith('Pos')) {
-            pos = parseInt(line.split(':')[1].trim());
-          } else {
-            songLines.push(line);
-          }
-        }
-        if (songLines.length !== 0 && pos !== -1) {
-          this.playlist[pos] = new Song(songLines);
-        }
-        this._answerCallbackError(lines[lines.length - 1]);
-        return this.playlist;
-      });
+  async _updatePlaylist() {
+    const message = await this._sendCommand('playlistinfo');
+    const lines = message.split('\n');
+    this.playlist = [];
+    let songLines = [];
+    let pos;
+    for (let i = 0; i < lines.length - 1; i += 1) {
+      let line = lines[i];
+      if (i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
+        this.playlist[pos] = new Song(songLines);
+        songLines = [];
+        pos = -1;
+      }
+      if (line.startsWith('Pos')) {
+        pos = parseInt(line.split(':')[1].trim(), 10);
+      } else {
+        songLines.push(line);
+      }
+    }
+    if (songLines.length !== 0 && pos !== -1) {
+      this.playlist[pos] = new Song(songLines);
+    }
+    await this._answerCallbackError(lines[lines.length - 1]);
+    return this.playlist;
   }
 
-  _updateSongs() {
-    return this._sendCommand('listallinfo')
-      .then((message) => {
-        let lines = message.split("\n");
-        this.songs = [];
-        let songLines = [];
-        for (let i = 0; i < lines.length - 1; i += 1) {
-          let line = lines[i];
-          if (i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
-            this.songs.push(new Song(songLines));
-            songLines = [];
-          }
-          songLines.push(line);
-        }
-        if(songLines.length !== 0) {
-          this.songs.push(new Song(songLines));
-        }
-        this._answerCallbackError(lines[lines.length - 1]);
-        return this.songs;
-      });
+  async _updateSongs() {
+    const message = await this._sendCommand('listallinfo');
+    const lines = message.split('\n');
+    this.songs = [];
+    let songLines = [];
+    for (let i = 0; i < lines.length - 1; i += 1) {
+      let line = lines[i];
+      if (i !== 0 && line.startsWith(CONST_FILE_LINE_START)) {
+        this.songs.push(new Song(songLines));
+        songLines = [];
+      }
+      songLines.push(line);
+    }
+    if (songLines.length !== 0) {
+      this.songs.push(new Song(songLines));
+    }
+    await this._answerCallbackError(lines[lines.length - 1]);
+    return this.songs;
   }
 
   _parseStatusResponseValue({ key, val }) {
@@ -219,36 +248,41 @@ module.exports = class MPD extends EventEmitter {
       case 'repeat':
       case 'single':
       case 'random':
-      case 'consume': return val === '1';
+      case 'consume':
+        return val === '1';
       case 'song':
       case 'xfade':
       case 'bitrate':
       case 'playlist':
-      case 'playlistlength': return parseInt(val, 10);
-      case 'volume': return parseFloat(val.replace('%', '')) / 100;
+      case 'playlistlength':
+        return parseInt(val, 10);
+      case 'volume':
+        return parseFloat(val.replace('%', '')) / 100;
       case 'time': {
         const times = val.split(':');
         return { elapsed: times[0], length: times[1] };
       }
-      default: return val;
+      default:
+        return val;
     }
   }
 
-  _parseStatusResponse(message) {
-    for (let line of message.split("\n")) {
-      if (line === 'OK') continue;
-      const kvp = parseKvp(line);
-      if (kvp === false) {
-        throw new Error(`Unknown response while fetching status: ${line}`);
+  async _parseStatusResponse(message) {
+    try {
+      for (const line of message.split('\n')) {
+        if (line === 'OK') continue;
+        const kvp = parseKvp(line);
+        this.status[kvp.key] = this._parseStatusResponseValue(kvp);
       }
-      this.status[kvp.key] = this._parseStatusResponseValue(kvp);
+    } catch (e) {
+      throw new Error(`Unknown response while fetching status: ${e}`);
     }
     return this.status;
   }
 
-  updateStatus() {
-    return this._sendCommand('status')
-      .then(r => this._parseStatusResponse(r));
+  async updateStatus() {
+    const r = await this._sendCommand('status');
+    return this._parseStatusResponse(r);
   }
 
   /*
@@ -257,26 +291,32 @@ module.exports = class MPD extends EventEmitter {
 
   /**
    * Initiate MPD connection with greeting message.
-   * @param {string} message 
+   * @param {string} message
    */
-  _initialGreeting(message) {
-    this.server = parseGreeting(message);
-    if (this.server === false) {
+  async _initialGreeting(message) {
+    try {
+      this.server = parseGreeting(message);
+    } catch (e) {
       this.restoreConnection();
-      throw new Error(`Unexpected greeting message: '${message}'!`);
+      throw new Error(`Unexpected greeting message: '${message}'! ${e}`);
     }
     if (this.type === 'network' && this.keepAlive) {
       this.client.setKeepAlive(this.keepAlive);
     }
-    this.client.on('data', d => this._onData(d));
-    this.updateStatus()
-      .then(() => this._updateSongs())
-      .then(() => this._updatePlaylist())
-      .then(() => this._setReady())
-      .catch(e => this.emit('error', e));
+    this.client.on('data', async (d) => {
+      await this._onData(d);
+    });
+    try {
+      await this.updateStatus();
+      await this._updateSongs();
+      await this._updatePlaylist();
+      await this._setReady();
+    } catch (e) {
+      this.emit('error', e);
+    }
   }
 
-  _onData(data) {
+  async _onData(data) {
     if (!this.idling && !this.commanding) return;
     this[buffer] += !data ? '' : data.trim();
     const index = findReturn(this[buffer]);
@@ -285,9 +325,9 @@ module.exports = class MPD extends EventEmitter {
     const string = this[buffer].substring(0, index).trim();
     this[buffer] = this[buffer].substring(index, this[buffer].length);
     if (this.idling) {
-      this._onMessage(string);
+      await this._onMessage(string);
     } else if (this.commanding) {
-      this._handleResponse(string);
+      await this._handleResponse(string);
     }
   }
 
@@ -303,7 +343,7 @@ module.exports = class MPD extends EventEmitter {
   _enterIdle() {
     this.idling = true;
     this.commanding = false;
-    this._write('idle');    
+    this._write('idle');
   }
 
   _leaveIdle(callback) {
@@ -325,13 +365,12 @@ module.exports = class MPD extends EventEmitter {
       this.commanding = true;
       // It is possible to get a change event or just OK message
       if (message.match(/^\s*OK/)) return;
-      const matches = [...message.matchAll(/changed:\s*(.*)/g)];
+      const matches = this._matchAllChanged(message);
       if (!matches.length) {
         this.restoreConnection();
         throw new Error(`Received unknown message during idle: ${message}`);
       }
-      for (const match of matches) {
-        const update = match[1];
+      for (const update of matches) {
         const afterUpdate = () => {
           this.emit('update', update);
           this.emit('status', update);
@@ -354,9 +393,22 @@ module.exports = class MPD extends EventEmitter {
         }
       }
       this._checkIdle();
-    } catch(e) {
+    } catch (e) {
       this.emit('error', e);
     }
+  }
+
+  _matchAllChanged(message = '') {
+    const data = [];
+    if (typeof message !== 'string' || message === '') {
+      return data;
+    }
+    for (const line of message.split('\n')) {
+      if (line.indexOf('changed:') === 0) {
+        data.push(line.substring(8).trim());
+      }
+    }
+    return data;
   }
 
   /**
@@ -375,12 +427,10 @@ module.exports = class MPD extends EventEmitter {
     const request = this._requests.shift();
     if (!request) return;
     this.busy = true;
-    return this.idling
-      ? this._leaveIdle(() => this._dequeue(request))
-      : this._dequeue(request);
+    return this.idling ? this._leaveIdle(() => this._dequeue(request)) : this._dequeue(request);
   }
 
-  _sendCommand() {
+  async _sendCommand() {
     if (arguments.length === 0) return;
     const cmd = arguments[0];
     let args = '';
@@ -390,24 +440,25 @@ module.exports = class MPD extends EventEmitter {
     return this._send(cmd + args);
   }
 
-  _send(message) {
+  async _send(message) {
     return new Promise((resolve, reject) => {
       try {
         this._requests.push({ message, callback: resolve, errorback: reject });
         this._checkOutgoing();
-      } catch(e) {
+      } catch (e) {
         reject(e);
       }
     });
   }
 
-  _handleResponse(message) {
+  async _handleResponse(message) {
     if (!this._activeListener) return;
     const callback = this._activeListener;
     this._activeListener = null;
     this._checkOutgoing();
     this._checkIdle();
-    callback(message);
+    await callback(message);
+    return;
   }
 
   _write(text) {
@@ -416,8 +467,8 @@ module.exports = class MPD extends EventEmitter {
         this.restoreConnection();
         throw new Error('Disconnect while writing to MPD: ' + text);
       }
-      this.client.write(text + "\n");
-    } catch(e) {
+      this.client.write(text + '\n');
+    } catch (e) {
       this.emit('error', e);
     }
   }
