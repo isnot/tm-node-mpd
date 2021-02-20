@@ -12,7 +12,7 @@ const FIELD_MAP = [
   { key: 'album', val: 'Album' },
   { key: 'track', val: 'Track' },
   { key: 'artist', val: 'Artist' },
-  { key: 'lastModified', val: 'Last-Modified' }
+  { key: 'lastModified', val: 'Last-Modified' },
 ];
 
 module.exports = class Song {
@@ -36,11 +36,11 @@ module.exports = class Song {
     if (!Array.isArray(data)) return data;
     const info = {};
     data
-      .filter(itm => itm !== RES_OK)
+      .filter((itm) => itm !== RES_OK)
       .forEach((itm) => {
         const kvp = parseKvp(itm);
         if (!kvp) throw new Error(ERR_MSG_UNKNOWN);
-        const fieldInfo = FIELD_MAP.find(fldKvp => fldKvp.val === kvp.key);
+        const fieldInfo = FIELD_MAP.find((fldKvp) => fldKvp.val === kvp.key);
         if (!fieldInfo) return;
         info[fieldInfo.key] = kvp.val;
       });

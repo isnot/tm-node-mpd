@@ -3,7 +3,7 @@ const Mpd = require('../src/mpd');
 test('Mpd class exist', () => expect(Mpd).toBeDefined());
 
 /* eslint-disable security-node/detect-crlf */
-const mpd = new Mpd({type: 'ipc'});
+const mpd = new Mpd({ type: 'ipc' });
 describe('Mpd short operation to change the volume.', () => {
   beforeAll(async () => {
     mpd.on('update', (changed) => {
@@ -41,15 +41,19 @@ describe('Mpd short operation to change the volume.', () => {
 describe('Mpd parse messages from "change events" while idle-ing.', () => {
   test('single: options', () => {
     expect.assertions(1);
-    expect(mpd._matchAllChanged(`changed: options
-OK`)).toMatchObject(['options']);
+    expect(
+      mpd._matchAllChanged(`changed: options
+OK`)
+    ).toMatchObject(['options']);
   });
   test('multiple: mixer x3', () => {
     expect.assertions(1);
-    expect(mpd._matchAllChanged(`changed: mixer
+    expect(
+      mpd._matchAllChanged(`changed: mixer
 changed: mixer
 changed: mixer
-OK`)).toMatchObject(['mixer', 'mixer', 'mixer']);
+OK`)
+    ).toMatchObject(['mixer', 'mixer', 'mixer']);
   });
   test('No matching event', () => {
     expect.assertions(1);

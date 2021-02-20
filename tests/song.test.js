@@ -8,7 +8,7 @@ const mockInfo = {
   track: 'song track',
   genre: 'song genre',
   artist: 'song artist',
-  lastModified: 'lastModified'
+  lastModified: 'lastModified',
 };
 
 test('Song class exist', () => expect(Song).toBeDefined());
