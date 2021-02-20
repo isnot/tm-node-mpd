@@ -28,3 +28,26 @@ module.exports.parseGreeting = (message = '') => {
     ? { name: m[1], version: m[2] }
     : false;
 };
+
+/**
+ * MPD protocol has several return patterns.
+ * @returns {Array} Array with supported mpd return patterns.
+ */
+module.exports.returnPatterns = () => [
+  /OK(?:\n|$)/g,
+  /ACK\s*\[\d*\@\d*]\s*\{.*?\}\s*.*?(?:$|\n)/g
+];
+
+/**
+ * Searchs for an mpd protocol return mark in the collected response data.
+ * @param {string} message MPD message.
+ * @returns {number|false} Total message length or false if no marks has been found.
+ */
+module.exports.findReturn = (message = '') => {
+  if (!message) return false;
+  for (let pattern of module.exports.returnPatterns()) {
+    const arr = pattern.exec(message);
+    if (arr) return arr.index + arr[0].length;
+  }
+  return false;
+};

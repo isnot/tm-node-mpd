@@ -47,3 +47,17 @@ describe('Test parseGreeting function', () => {
     expect(greeting.version).toBe('0.20.2');
   });
 });
+
+describe('Test returnPatterns function', () => {
+  test('Is defined', () => expect(proto.returnPatterns).toBeDefined());
+  test('Returns an array', () => expect(Array.isArray(proto.returnPatterns())).toBe(true));
+  test('Returned array is not empty', () => expect(proto.returnPatterns().length).toBeTruthy());
+});
+
+describe('Test findReturn function', () => {
+  test('Is defined', () => expect(proto.findReturn).toBeDefined());
+  test('Returns false if no data passed', () => expect(proto.findReturn()).toBe(false));
+  test('Returns false if passed string doesn\'t contain mpd return mark', () => {
+    expect(proto.findReturn('Some test message')).toBe(false);
+  });
+});
