@@ -2,9 +2,10 @@ const proto = require('../src/protocol');
 
 describe('Test parseKvp function', () => {
   test('Is defined', () => expect(proto.parseKvp).toBeDefined());
-  test('Throw error if no data passed', () => expect(() => {
-    proto.parseKvp();
-  }).toThrow('found void data in parseKvp'));
+  test('Throw error if no data passed', () =>
+    expect(() => {
+      proto.parseKvp();
+    }).toThrow('found void data in parseKvp'));
   test('Throw error if passed string doesnt match kvp format', () => {
     expect(() => {
       proto.parseKvp('no kvp');
@@ -37,9 +38,10 @@ describe('Test parseKvp function', () => {
 describe('Test parseGreeting function', () => {
   const error_message = 'occurred invalid string in parseGreeting';
   test('Is defined', () => expect(proto.parseGreeting).toBeDefined());
-  test('Throw error if no data passed', () => expect(() => {
-    proto.parseGreeting();
-  }).toThrow(error_message));
+  test('Throw error if no data passed', () =>
+    expect(() => {
+      proto.parseGreeting();
+    }).toThrow(error_message));
   test('Throw error if passed string doesnt match greetings format', () => {
     expect(() => {
       proto.parseGreeting('Failed greetings');
@@ -72,8 +74,13 @@ describe('Test returnPatterns function', () => {
 
 describe('Test findReturn function', () => {
   test('Is defined', () => expect(proto.findReturn).toBeDefined());
-  test('Returns false if no data passed', () => expect(proto.findReturn()).toBe(false));
-  test('Returns false if passed string doesn\'t contain mpd return mark', () => {
-    expect(proto.findReturn('Some test message')).toBe(false);
+  test('Throw error if no data passed', () =>
+    expect(() => {
+      proto.findReturn();
+    }).toThrow('no params found in findReturn'));
+  test('Throw error if passed string does not contain mpd return mark', () => {
+    expect(() => {
+      proto.findReturn('Some test message');
+    }).toThrow('no marks has been found in findReturn');
   });
 });
