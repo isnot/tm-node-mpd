@@ -1,7 +1,7 @@
 const Song = require('./song');
 const { Socket } = require('net');
 const { EventEmitter } = require('events');
-const { parseKvp, parseGreeting } = require('./protocol');
+const { parseKvp, parseGreeting, findReturn } = require('./protocol');
 
 const DEF_PORT = 6600;
 const DEF_HOST = 'localhost';
@@ -276,21 +276,11 @@ module.exports = class MPD extends EventEmitter {
       .catch(e => this.emit('error', e));
   }
 
-  findReturn(message) {
-    const rOk = /OK(?:\n|$)/g;
-    let arr = rOk.exec(message);
-    if (arr) return arr.index + arr[0].length;
-    // If response is not OK.
-    const rAck = /ACK\s*\[\d*\@\d*]\s*\{.*?\}\s*.*?(?:$|\n)/g;
-    arr = rAck.exec(message);
-    return arr ? arr.index + arr[0].length : -1;
-  }
-
   _onData(data) {
     if (!this.idling && !this.commanding) return;
     this[buffer] += !data ? '' : data.trim();
-    const index = this.findReturn(this[buffer]);
-    if (index === -1) return;
+    const index = findReturn(this[buffer]);
+    if (index === false) return;
     // We found a return mark
     const string = this[buffer].substring(0, index).trim();
     this[buffer] = this[buffer].substring(index, this[buffer].length);

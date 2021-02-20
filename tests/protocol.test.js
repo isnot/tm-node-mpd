@@ -22,6 +22,11 @@ describe('Test parseKvp function', () => {
     expect(kvp.key).toBe('vol');
     expect(kvp.val).toBe('42');
   });
+  test('Returnse values contain white spaces.', () => {
+    expect.assertions(2);
+    expect(proto.parseKvp('Artist: Various Artists')).not.toHaveProperty('val', 'Various');
+    expect(proto.parseKvp('Title: Lazy fox jumps.')).toHaveProperty('val', 'Lazy fox jumps.');
+  });
 });
 
 describe('Test parseGreeting function', () => {
@@ -45,5 +50,19 @@ describe('Test parseGreeting function', () => {
     const greeting = proto.parseGreeting('OK MPD 0.20.2');
     expect(greeting.name).toBe('MPD');
     expect(greeting.version).toBe('0.20.2');
+  });
+});
+
+describe('Test returnPatterns function', () => {
+  test('Is defined', () => expect(proto.returnPatterns).toBeDefined());
+  test('Returns an array', () => expect(Array.isArray(proto.returnPatterns())).toBe(true));
+  test('Returned array is not empty', () => expect(proto.returnPatterns().length).toBeTruthy());
+});
+
+describe('Test findReturn function', () => {
+  test('Is defined', () => expect(proto.findReturn).toBeDefined());
+  test('Returns false if no data passed', () => expect(proto.findReturn()).toBe(false));
+  test('Returns false if passed string doesn\'t contain mpd return mark', () => {
+    expect(proto.findReturn('Some test message')).toBe(false);
   });
 });
