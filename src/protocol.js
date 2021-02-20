@@ -8,7 +8,7 @@
  */
 module.exports.parseKvp = (kvp = '') => {
   if (!kvp) return false;
-  const m = kvp.match(/(\S+)\s*:\s*(\S+)/);
+  const m = kvp.match(/(\S+)\s*:\s*(.+)$/);
   return Array.isArray(m) && m.length === 3
     ? { key: m[1].trim(), val: m[2].trim() }
     : false;

@@ -22,6 +22,11 @@ describe('Test parseKvp function', () => {
     expect(kvp.key).toBe('vol');
     expect(kvp.val).toBe('42');
   });
+  test('Returnse values contain white spaces.', () => {
+    expect.assertions(2);
+    expect(proto.parseKvp('Artist: Various Artists')).not.toHaveProperty('val', 'Various');
+    expect(proto.parseKvp('Title: Lazy fox jumps.')).toHaveProperty('val', 'Lazy fox jumps.');
+  });
 });
 
 describe('Test parseGreeting function', () => {
