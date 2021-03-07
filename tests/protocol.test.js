@@ -6,6 +6,11 @@ describe('Test parseKvp function', () => {
   test('Returns false if passed string doesnt match kvp format', () => {
     expect(proto.parseKvp('no kvp')).toBe(false);
   });
+  test('Returns false if passed argument is not a string', () => {
+    [null, {}, 25, undefined].forEach((arg) => {
+      expect(proto.parseKvp(arg)).toBe(false);
+    });
+  });
   test('Doesnt returns false if passed string matches kvp format', () => {
     expect(proto.parseKvp('vol: 42')).toBeTruthy();
   });
