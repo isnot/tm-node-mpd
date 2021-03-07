@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install mpd
-        run: apt install mpd
+        run: sudo apt install mpd
       - name: Install node modules
         run: npm install
   lint:
