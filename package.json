@@ -1,11 +1,14 @@
 {
   "name": "tm-node-mpd",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Music player daemon client library(forked from node-mpd).",
   "main": "index.js",
   "scripts": {
     "test": "jest",
     "lint": "./node_modules/.bin/eslint ./src/**/**.js --fix"
+  },
+  "engines": {
+    "node": ">=10"
   },
   "jest": {
     "verbose": true
