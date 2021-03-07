@@ -44,7 +44,7 @@ module.exports.returnPatterns = () => [
 ];
 
 /**
- * Searchs for an mpd protocol return mark in the collected response data.
+ * Searches for an mpd protocol return mark in the response data.
  * @param {string} message MPD message.
  * @returns {number|false} Total message length or false if no marks has been found.
  */
@@ -55,4 +55,18 @@ module.exports.findReturn = (message = '') => {
     if (arr) return arr.index + arr[0].length;
   }
   return false;
+};
+
+/**
+ * Parses changes/updates in mpd idle messages.
+ * @param {string} message MPD message.
+ * @returns {Array} List of found changes.
+ */
+module.exports.parseChanged = (message = '') => {
+  if (!message || typeof message !== 'string') {
+    return [];
+  }
+  return message.split('\n')
+    .filter(l => l.indexOf('changed:') === 0)
+    .map(l => l.substring(8).trim());
 };

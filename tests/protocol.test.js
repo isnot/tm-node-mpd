@@ -76,3 +76,19 @@ describe('Test findReturn function', () => {
     expect(proto.findReturn('Some test message')).toBe(false);
   });
 });
+
+describe('Test parseChanged function', () => {
+  test('Is defined', () => expect(proto.parseChanged).toBeDefined());
+  test('Returns an empty array if not acceptable data passed', () => {
+    [null, {}, 25, undefined, ''].forEach((arg) => {
+      const res = proto.parseChanged(arg);
+      expect(Array.isArray(res)).toBeTruthy();
+      expect(res.length).toBe(0);
+    });
+  });
+  test('Returns an expected array of changes', () => {
+    const mock = 'changed:playlist\nchanged:mixer';
+    const result = ['playlist', 'mixer'];
+    expect(proto.parseChanged(mock)).toEqual(result);
+  });
+});
