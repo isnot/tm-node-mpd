@@ -22,9 +22,12 @@ module.exports.parseKvp = (kvp = '') => {
  * the server will answer with the following line: 'OK MPD version'
  * where version is a protocol version identifier such as 0.12.2.
  * @param {string} message MPD greeting message.
- * @returns {Object} mpd protocol details: { name: service name(MPD), version: protocol version}.
+ * @returns {Object|false} mpd proto details: { name: service name(MPD), version: proto version}.
  */
 module.exports.parseGreeting = (message = '') => {
+  if (!message || typeof message !== 'string') {
+    return false;
+  }
   const m = message.match(/OK\s(.+)\s(.+)/);
   return Array.isArray(m) && m.length === 3
     ? { name: m[1], version: m[2] }

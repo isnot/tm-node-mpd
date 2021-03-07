@@ -40,6 +40,11 @@ describe('Test parseGreeting function', () => {
   test('Returns false if passed string doesnt match greetings format', () => {
     expect(proto.parseGreeting('Failed greetings')).toBe(false);
   });
+  test('Returns false if passed argument is not a string', () => {
+    [null, {}, 25, undefined].forEach((arg) => {
+      expect(proto.parseGreeting(arg)).toBe(false);
+    });
+  });
   test('Doesnt returns false if passed string matches greetings format', () => {
     expect(proto.parseGreeting('OK MPD 0.20.2')).toBeTruthy();
   });
