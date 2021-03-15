@@ -18,9 +18,16 @@ jobs:
         run: npm run lint
   test:
     needs: lint
+    strategy:
+      matrix:
+        node_versions: [10, 12, 14]
+      fail-fase: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node_versions }}
       - name: Install mpd
         run: sudo apt install mpd
       - name: Install node modules
