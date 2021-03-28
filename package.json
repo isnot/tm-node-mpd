@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "test:coverage": "jest --coverage"
     "lint": "./node_modules/.bin/eslint ./src/**/**.js --fix"
   },
   "engines": {
     "node": ">=10"
   },
   "jest": {
-    "verbose": true
+    "verbose": true,
+    "coverageDirectory": "./coverage"
   },
   "repository": {
     "type": "git",
