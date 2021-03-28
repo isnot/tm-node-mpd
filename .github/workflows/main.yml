@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: ${{ matrix.node_versions }}
       - name: Install mpd
-        run: sudo apt install mpd
+        run: sudo apt update && sudo apt install mpd
       - name: Install node modules
         run: npm install
       - name: Run Tests
@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install mpd
-        run: sudo apt install mpd
+        run: sudo apt update && sudo apt install mpd
       - name: Install node modules
         run: npm install
       - name: Run Tests with coverage
