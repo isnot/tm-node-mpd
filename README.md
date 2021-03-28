@@ -3,6 +3,8 @@ tm-node-mpd
 
 [![npm](https://img.shields.io/npm/v/tm-node-mpd.svg)](https://www.npmjs.org/package/tm-node-mpd)
 
+[![codecov](https://codecov.io/gh/RomanBurunkov/tm-node-mpd/branch/master/graph/badge.svg?token=8MLYWHWVM9)](https://codecov.io/gh/RomanBurunkov/tm-node-mpd)
+
 This is fork of [node-mpd](https://github.com/Prior99/node-mpd) project by Frederick Gnodtke.
 
 tm-node-mpd is a library for simple communicating with a [music player daemon](http://www.musicpd.org/).
