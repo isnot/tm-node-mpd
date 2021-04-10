@@ -6,6 +6,11 @@ describe('Test parseKvp function', () => {
   test('Returns false if passed string doesnt match kvp format', () => {
     expect(proto.parseKvp('no kvp')).toBe(false);
   });
+  test('Returns false if passed argument is not a string', () => {
+    [null, {}, 25, undefined].forEach((arg) => {
+      expect(proto.parseKvp(arg)).toBe(false);
+    });
+  });
   test('Doesnt returns false if passed string matches kvp format', () => {
     expect(proto.parseKvp('vol: 42')).toBeTruthy();
   });
@@ -34,6 +39,11 @@ describe('Test parseGreeting function', () => {
   test('Returns false if no data passed', () => expect(proto.parseGreeting()).toBe(false));
   test('Returns false if passed string doesnt match greetings format', () => {
     expect(proto.parseGreeting('Failed greetings')).toBe(false);
+  });
+  test('Returns false if passed argument is not a string', () => {
+    [null, {}, 25, undefined].forEach((arg) => {
+      expect(proto.parseGreeting(arg)).toBe(false);
+    });
   });
   test('Doesnt returns false if passed string matches greetings format', () => {
     expect(proto.parseGreeting('OK MPD 0.20.2')).toBeTruthy();
@@ -64,5 +74,21 @@ describe('Test findReturn function', () => {
   test('Returns false if no data passed', () => expect(proto.findReturn()).toBe(false));
   test('Returns false if passed string doesn\'t contain mpd return mark', () => {
     expect(proto.findReturn('Some test message')).toBe(false);
+  });
+});
+
+describe('Test parseChanged function', () => {
+  test('Is defined', () => expect(proto.parseChanged).toBeDefined());
+  test('Returns an empty array if not acceptable data passed', () => {
+    [null, {}, 25, undefined, ''].forEach((arg) => {
+      const res = proto.parseChanged(arg);
+      expect(Array.isArray(res)).toBeTruthy();
+      expect(res.length).toBe(0);
+    });
+  });
+  test('Returns an expected array of changes', () => {
+    const mock = 'changed:playlist\nchanged:mixer';
+    const result = ['playlist', 'mixer'];
+    expect(proto.parseChanged(mock)).toEqual(result);
   });
 });

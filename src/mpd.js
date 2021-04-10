@@ -1,7 +1,7 @@
 const Song = require('./song');
 const { Socket } = require('net');
 const { EventEmitter } = require('events');
-const { parseKvp, parseGreeting, findReturn } = require('./protocol');
+const { parseKvp, parseGreeting, findReturn, parseChanged } = require('./protocol');
 
 const DEF_PORT = 6600;
 const DEF_HOST = 'localhost';
@@ -325,13 +325,12 @@ module.exports = class MPD extends EventEmitter {
       this.commanding = true;
       // It is possible to get a change event or just OK message
       if (message.match(/^\s*OK/)) return;
-      const matches = [...message.matchAll(/changed:\s*(.*)/g)];
-      if (!matches.length) {
+      const updates = parseChanged(message);
+      if (!updates.length) {
         this.restoreConnection();
         throw new Error(`Received unknown message during idle: ${message}`);
       }
-      for (const match of matches) {
-        const update = match[1];
+      for (const update of updates) {
         const afterUpdate = () => {
           this.emit('update', update);
           this.emit('status', update);

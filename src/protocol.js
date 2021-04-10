@@ -4,10 +4,12 @@
  * Some commands return data before the response ends with OK.
  * Each line is usually in the form NAME: VALUE.
  * @param {string} kvp String to parse for kvp.
- * @returns {Object|false} KVP object of false if parsing failed.
+ * @returns {Object|false} KVP object or false if parsing failed.
  */
 module.exports.parseKvp = (kvp = '') => {
-  if (!kvp) return false;
+  if (!kvp || typeof kvp !== 'string') {
+    return false;
+  }
   const m = kvp.match(/(\S+)\s*:\s*(.+)$/);
   return Array.isArray(m) && m.length === 3
     ? { key: m[1].trim(), val: m[2].trim() }
@@ -20,9 +22,12 @@ module.exports.parseKvp = (kvp = '') => {
  * the server will answer with the following line: 'OK MPD version'
  * where version is a protocol version identifier such as 0.12.2.
  * @param {string} message MPD greeting message.
- * @returns {Object} mpd protocol details: { name: service name(MPD), version: protocol version}.
+ * @returns {Object|false} mpd proto details: { name: service name(MPD), version: proto version}.
  */
 module.exports.parseGreeting = (message = '') => {
+  if (!message || typeof message !== 'string') {
+    return false;
+  }
   const m = message.match(/OK\s(.+)\s(.+)/);
   return Array.isArray(m) && m.length === 3
     ? { name: m[1], version: m[2] }
@@ -39,7 +44,7 @@ module.exports.returnPatterns = () => [
 ];
 
 /**
- * Searchs for an mpd protocol return mark in the collected response data.
+ * Searches for an mpd protocol return mark in the response data.
  * @param {string} message MPD message.
  * @returns {number|false} Total message length or false if no marks has been found.
  */
@@ -50,4 +55,18 @@ module.exports.findReturn = (message = '') => {
     if (arr) return arr.index + arr[0].length;
   }
   return false;
+};
+
+/**
+ * Parses changes/updates in mpd idle messages.
+ * @param {string} message MPD message.
+ * @returns {Array} List of found changes.
+ */
+module.exports.parseChanged = (message = '') => {
+  if (!message || typeof message !== 'string') {
+    return [];
+  }
+  return message.split('\n')
+    .filter(l => l.indexOf('changed:') === 0)
+    .map(l => l.substring(8).trim());
 };
