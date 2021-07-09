@@ -21,17 +21,17 @@
     "daemon"
   ],
   "devDependencies": {
-    "eslint": "^7.26.0",
+    "eslint": "^7.30.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-import": "^2.23.4",
     "eslint-plugin-jest": "^24.3.6",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-security-node": "^1.0.14",
-    "jest": "^26.6.3",
-    "prettier": "^2.2.1"
+    "jest": "^27.0.6",
+    "prettier": "^2.3.2"
   },
   "author": "Roman Burunkov <romon2002@gmail.com>",
   "license": "MIT"
