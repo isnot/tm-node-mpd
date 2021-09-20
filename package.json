@@ -24,14 +24,14 @@
     "eslint": "^7.32.0",
     "eslint-config-airbnb-base": "^14.2.1",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-import": "^2.24.1",
-    "eslint-plugin-jest": "^24.4.0",
+    "eslint-plugin-import": "^2.24.2",
+    "eslint-plugin-jest": "^24.4.2",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-prettier": "^3.4.1",
+    "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-security-node": "^1.0.14",
-    "jest": "^27.0.6",
-    "prettier": "^2.3.2"
+    "jest": "^27.2.0",
+    "prettier": "^2.4.1"
   },
   "author": "Roman Burunkov <romon2002@gmail.com>",
   "license": "MIT"
